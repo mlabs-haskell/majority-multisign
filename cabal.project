@@ -1,6 +1,6 @@
 index-state: 2021-08-14T00:00:00Z
 
-packages: ./.
+packages: ./majority-multisign
 
 source-repository-package
   type: git
