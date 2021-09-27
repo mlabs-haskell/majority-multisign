@@ -55,9 +55,13 @@ library
   import:          lang
   exposed-modules:
     MajorityMultiSign
+    MajorityMultiSign.Initialize
+    MajorityMultiSign.OnChain
+    MajorityMultiSign.Schema
 
   build-depends:
     , aeson              ^>=1.5.6.0
+    , extra
     , freer-simple       ^>=1.2.1.1
     , lens               ^>=4.19.2
     , plutus-contract
