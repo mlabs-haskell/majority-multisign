@@ -29,7 +29,7 @@ jobs:
       - run: stack install fourmolu
         name: Setup
 
-      - run: ./.github/format.sh
+      - run: sudo ./.github/format.sh
         name: "Run fourmolu"
 
   lint:
