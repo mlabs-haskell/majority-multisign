@@ -95,6 +95,18 @@
         "url": "https://github.com/input-output-hk/goblins/archive/cde90a2b27f79187ca8310b6549331e59595e7ba.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "haskell.nix": {
+        "branch": "master",
+        "description": "Alternative Haskell Infrastructure for Nixpkgs",
+        "homepage": "https://input-output-hk.github.io/haskell.nix",
+        "owner": "input-output-hk",
+        "repo": "haskell.nix",
+        "rev": "afee42b151b15219d6a446da51fffa90fbe85a1f",
+        "sha256": "0dk9nz8g8zw46y7zflh3xndffq3g71285db148mwgb9h47v3qbhn",
+        "type": "tarball",
+        "url": "https://github.com/input-output-hk/haskell.nix/archive/afee42b151b15219d6a446da51fffa90fbe85a1f.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "hedgehog-extras": {
         "branch": "master",
         "description": null,
