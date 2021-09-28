@@ -2,12 +2,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module MajorityMultiSign.OnChain (
-  address,
+  validator,
   validatorAddress,
 ) where
 
-import Cardano.Prelude (fromInteger)
-import Data.Kind (Type)
 import Data.List.Extra (firstJust)
 import Ledger (Address, Datum (..), PubKeyHash, ScriptContext (..), txSignedBy)
 import Ledger qualified
@@ -16,7 +14,6 @@ import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Schema (
   MajorityMultiSign,
   MajorityMultiSignDatum (..),
-  MajorityMultiSignIdentifier (..),
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignValidatorParams (..),
  )
