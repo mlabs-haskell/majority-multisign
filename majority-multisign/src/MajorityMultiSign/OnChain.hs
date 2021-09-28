@@ -6,6 +6,8 @@ module MajorityMultiSign.OnChain (
   validatorAddress,
 ) where
 
+import Cardano.Prelude (fromInteger)
+import Data.Kind (Type)
 import Data.List.Extra (firstJust)
 import Ledger (Address, Datum (..), PubKeyHash, ScriptContext (..), txSignedBy)
 import Ledger qualified
@@ -22,8 +24,16 @@ import Plutus.V1.Ledger.Api (TxInfo (..), TxOut (..))
 import Plutus.V1.Ledger.Contexts (findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
-import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
-import PlutusTx.Prelude
+import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger, lessThanEqualsInteger)
+import PlutusTx.Prelude hiding (take)
+
+{-# INLINEABLE replaceIndex #-}
+-- Must be implemented with direct recursion as onchain list manipulation is not well supported in plutus.
+replaceIndex :: Integer -> PubKeyHash -> [PubKeyHash] -> [PubKeyHash]
+replaceIndex _ _ [] = []
+replaceIndex i x' (x : xs)
+  | i `lessThanEqualsInteger` 0 = x' : xs
+  | otherwise = x : replaceIndex (i -1) x' xs
 
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
@@ -32,9 +42,14 @@ mkValidator ::
   MajorityMultiSignRedeemer ->
   ScriptContext ->
   Bool
-mkValidator params dat _ ctx =
-  hasCorrectToken params ctx dat
+mkValidator params dat red ctx =
+  hasCorrectToken params ctx (getExpectedDatum red dat)
     && isSufficientlySigned dat ctx
+
+{-# INLINEABLE getExpectedDatum #-}
+getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> MajorityMultiSignDatum
+getExpectedDatum UseSignaturesAct datum = datum
+getExpectedDatum UpdateKeyAct {..} datum = datum {signers = replaceIndex index newKey $ signers datum}
 
 {-# INLINEABLE hasCorrectToken #-}
 hasCorrectToken :: MajorityMultiSignValidatorParams -> ScriptContext -> MajorityMultiSignDatum -> Bool
