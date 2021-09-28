@@ -1,15 +1,14 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-module MajorityMultiSign.OnChain where
+module MajorityMultiSign.OnChain (
+  address,
+  validatorAddress,
+) where
 
-import Control.Monad.Extra (mconcatMapM)
-import Data.List (genericLength)
-import Data.Monoid (First (..))
-import Ledger (Address, PubKeyHash, ScriptContext (..), txSignedBy)
+import Data.List.Extra (firstJust)
+import Ledger (Address, Datum (..), PubKeyHash, ScriptContext (..), txSignedBy)
 import Ledger qualified
-import Ledger.Constraints qualified as Constraints
-import Ledger.Constraints.TxConstraints qualified as TxConstraints
 import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Schema (
@@ -17,17 +16,14 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignDatum (..),
   MajorityMultiSignIdentifier (..),
   MajorityMultiSignRedeemer (..),
-  MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (..),
  )
-import Plutus.Contract (
-  Contract,
-  ContractError,
- )
 import Plutus.V1.Ledger.Api (TxInfo (..), TxOut (..))
+import Plutus.V1.Ledger.Contexts (findDatumHash)
+import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
+import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
 import PlutusTx.Prelude
-import Prelude qualified
 
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
@@ -36,34 +32,28 @@ mkValidator ::
   MajorityMultiSignRedeemer ->
   ScriptContext ->
   Bool
-mkValidator params dat red ctx =
+mkValidator params dat _ ctx =
   hasCorrectToken params ctx dat
     && isSufficientlySigned dat ctx
 
 {-# INLINEABLE hasCorrectToken #-}
 hasCorrectToken :: MajorityMultiSignValidatorParams -> ScriptContext -> MajorityMultiSignDatum -> Bool
 hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
-  isJust inputTxOut
-    && (txOutAddress <$> inputTxOut) == (txOutAddress <$> outputTxOut)
-    && (txOutDatumHash <$> outputTxOut) == Just (Just $ datumHash expectedDatum)
+  isJust assetTxOut
+    && (assetTxOut >>= txOutDatumHash) == findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx)
   where
-    checkAsset :: TxOut -> First TxOut
-    checkAsset txOut = First $ if assetClassValueOf asset (txOutValue txOut) > 0 then txOutAddress txOut else Nothing
+    continuing :: [TxOut]
+    continuing = Ledger.getContinuingOutputs ctx
 
-    getAssetTxOut :: [TxOut] -> Maybe TxOut
-    getAssetTxOut = getFirst . mconcatMapM checkAsset
+    checkAsset :: TxOut -> Maybe TxOut
+    checkAsset txOut = if assetClassValueOf (txOutValue txOut) asset > 0 then Just txOut else Nothing
 
-    getAssetAddress :: [TxOut] -> Maybe Address
-    getAssetAddress txOuts = txOutAddress <$> getAssetTxOut txOuts
-
-    inputTxOut :: Maybe TxOut
-    inputTxOut = getAssetTxOut $ txInInfoResolved <$> txInfoInputs (scriptContextTxInfo ctx)
-    outputTxOut :: Maybe TxOut
-    outputTxOut = getAssetTxOut $ txInfoOutputs $ scriptContextTxInfo ctx  
+    assetTxOut :: Maybe TxOut
+    assetTxOut = firstJust checkAsset continuing
 
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignDatum -> ScriptContext -> Bool
-isSufficientlySigned MajorityMultiSignDatum {..} ctx = genericLength signersPresent >= (genericLength signers / 2)
+isSufficientlySigned MajorityMultiSignDatum {..} ctx = length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2)
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -78,8 +68,8 @@ inst params =
   where
     wrap = TypedScripts.wrapValidator @MajorityMultiSignDatum @MajorityMultiSignRedeemer
 
-validator :: Scripts.Validator
-validator = TypedScripts.validatorScript inst
+validator :: MajorityMultiSignValidatorParams -> Scripts.Validator
+validator = TypedScripts.validatorScript . inst
 
-address :: Ledger.Address
-address = Ledger.scriptAddress validator
+validatorAddress :: MajorityMultiSignValidatorParams -> Ledger.Address
+validatorAddress = Ledger.scriptAddress . validator

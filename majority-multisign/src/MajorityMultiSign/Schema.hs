@@ -13,10 +13,10 @@ module MajorityMultiSign.Schema (
 ) where
 
 import Ledger.Typed.Scripts qualified as Scripts
+import Plutus.Contract (Endpoint)
 import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Scripts (ValidatorHash)
 import Plutus.V1.Ledger.Value (AssetClass)
-import Plutus.Contract (Endpoint)
 import PlutusTx qualified
 import PlutusTx.Prelude
 
@@ -28,6 +28,8 @@ data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
 data MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
   { asset :: AssetClass
   }
+
+PlutusTx.makeLift ''MajorityMultiSignValidatorParams
 
 data MajorityMultiSignDatum = MajorityMultiSignDatum
   { signers :: [PubKeyHash]
