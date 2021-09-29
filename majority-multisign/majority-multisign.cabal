@@ -55,16 +55,18 @@ library
   import:          lang
   exposed-modules:
     MajorityMultiSign
-    MajorityMultiSign.Initialize
+    MajorityMultiSign.Contracts
     MajorityMultiSign.OnChain
     MajorityMultiSign.Schema
 
   build-depends:
     , aeson              ^>=1.5.6.0
     , cardano-prelude
+    , containers
     , extra
     , freer-simple       ^>=1.2.1.1
     , lens               ^>=4.19.2
+    , playground-common
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
@@ -74,6 +76,7 @@ library
     , plutus-use-cases
     , prettyprinter      ^>=1.7.0
     , row-types          ^>=1.0.1.0
+    , text
 
   hs-source-dirs:  src
 

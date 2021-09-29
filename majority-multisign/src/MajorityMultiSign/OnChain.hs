@@ -1,23 +1,38 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module MajorityMultiSign.OnChain (
+  findUTxO,
   validator,
   validatorAddress,
+  validatorFromIdentifier,
 ) where
 
+import Cardano.Prelude (rightToMaybe)
+import Data.Kind (Type)
 import Data.List.Extra (firstJust)
-import Ledger (Address, Datum (..), PubKeyHash, ScriptContext (..), txSignedBy)
+import Data.Map qualified as Map
+import Data.Row (Row)
+import Data.Text (Text)
+import Ledger (Address, ChainIndexTxOut (..), Datum (..), PubKeyHash, ScriptContext (..), scriptHashAddress, txSignedBy)
 import Ledger qualified
 import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Schema (
   MajorityMultiSign,
   MajorityMultiSignDatum (..),
+  MajorityMultiSignIdentifier (..),
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignValidatorParams (..),
  )
-import Plutus.V1.Ledger.Api (TxInfo (..), TxOut (..))
+import Plutus.Contract (
+  Contract,
+  ContractError (..),
+  throwError,
+  utxosAt,
+ )
+import Plutus.V1.Ledger.Api (TxInfo (..), TxOut (..), TxOutRef)
 import Plutus.V1.Ledger.Contexts (findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
@@ -85,3 +100,27 @@ validator = TypedScripts.validatorScript . inst
 
 validatorAddress :: MajorityMultiSignValidatorParams -> Ledger.Address
 validatorAddress = Ledger.scriptAddress . validator
+
+validatorFromIdentifier :: MajorityMultiSignIdentifier -> Scripts.Validator
+validatorFromIdentifier MajorityMultiSignIdentifier {asset} = validator $ MajorityMultiSignValidatorParams asset
+
+findUTxO :: forall (w :: Type) (s :: Row Type). MajorityMultiSignIdentifier -> Contract w s ContractError (TxOutRef, Datum)
+findUTxO mms = do
+  utxos <- utxosAt $ scriptHashAddress mms.address
+  let utxoFiltered = Map.toList $ Map.filter ((> 0) . flip assetClassValueOf mms.asset . txOutValue . Ledger.toTxOut) utxos
+  case utxoFiltered of
+    [(txOutRef, txOut)] ->
+      maybeToError "Couldn't extract datum" $
+        (txOutRef,) <$> getChainIndexTxOutDatum txOut
+    _ -> throwError $ OtherError "Couldn't find UTxO"
+
+maybeToError ::
+  forall (w :: Type) (s :: Row Type) (a :: Type).
+  Text ->
+  Maybe a ->
+  Contract w s ContractError a
+maybeToError err = maybe (throwError $ OtherError err) return
+
+getChainIndexTxOutDatum :: ChainIndexTxOut -> Maybe Datum
+getChainIndexTxOutDatum PublicKeyChainIndexTxOut {} = Nothing
+getChainIndexTxOutDatum ScriptChainIndexTxOut {_ciTxOutDatum = eDatum} = rightToMaybe eDatum

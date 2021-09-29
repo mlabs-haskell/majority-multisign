@@ -1,9 +1,9 @@
 module MajorityMultiSign (main) where
 
-import MajorityMultiSign.Initialize ()
+import MajorityMultiSign.Contracts ()
 import MajorityMultiSign.OnChain ()
 import MajorityMultiSign.Schema ()
-import Prelude
+import Prelude (IO, return)
 
 main :: IO ()
 main = return ()
