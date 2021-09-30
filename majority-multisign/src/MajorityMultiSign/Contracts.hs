@@ -1,9 +1,9 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module MajorityMultiSign.Contracts (initialize, submitSignedTxConstraintsWith, setSignature) where
+module MajorityMultiSign.Contracts (initialize, submitSignedTxConstraintsWith, setSignature, getValidSignSets) where
 
-import Cardano.Prelude ((<>))
+import Cardano.Prelude (div, subsequences, (<>))
 import Control.Monad (void)
 import Data.Bifunctor (bimap)
 import Data.Kind (Type)
@@ -20,6 +20,7 @@ import Ledger (
  )
 import Ledger.Constraints (ScriptLookups, TxConstraints)
 import Ledger.Constraints qualified as Constraints
+import Ledger.Constraints.TxConstraints qualified as Constraints
 import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts (
   Any,
@@ -85,6 +86,21 @@ initialize dat = do
   void $ awaitTxConfirmed $ txId ledgerTx
   tell $ Last $ Just oneshotAsset
 
+-- | Gets all minimal sets of keys that would pass validation. For a 5 key system, this will generate 10 sets.
+-- TODO: Optimise this, there is no need to generate all subsets and filter.
+getValidSignSets :: [PubKeyHash] -> [[PubKeyHash]]
+getValidSignSets ps = filter ((== (length ps + 1) `div` 2) . length) $ subsequences ps
+
+-- | Creates the constraint for signing, this scales as `getValidSignSets` does
+makeSigningConstraint ::
+  forall (a :: Type).
+  ( ToData (RedeemerType a)
+  , ToData (DatumType a)
+  ) =>
+  [PubKeyHash] ->
+  TxConstraints (RedeemerType a) (DatumType a)
+makeSigningConstraint keys = Constraints.mustSatisfyAnyOf $ mconcatMap Constraints.mustBeSignedBy <$> getValidSignSets keys
+
 {- | Wrapper for submitTxConstraintsWith that adds the lookups and constraints for using a majority multisign validator in the transaction
   Due to limitations of plutus and submitTxConstraintsWith, the lookups passed here must be generic, typed validators cannot be passed in directly,
     and must instead be converted to normal validators first.
@@ -95,18 +111,17 @@ submitSignedTxConstraintsWith ::
   , ToData (DatumType a)
   ) =>
   MajorityMultiSignIdentifier ->
-  [PubKeyHash] ->
   ScriptLookups Any ->
   TxConstraints (RedeemerType a) (DatumType a) ->
   Contract w s ContractError Tx
-submitSignedTxConstraintsWith mms keys lookups tx = do
-  (utxoRef, datum) <- findUTxO mms
+submitSignedTxConstraintsWith mms lookups tx = do
+  (utxoRef, datum, signerList) <- findUTxO mms
   let lookups' :: ScriptLookups Any
       lookups' = lookups <> Constraints.otherScript (validatorFromIdentifier mms)
       tx' :: TxConstraints BuiltinData BuiltinData
       tx' =
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
-          <> mconcatMap Constraints.mustBeSignedBy keys
+          <> makeSigningConstraint @Any signerList
           <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
           <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mms.asset 1)
   submitTxConstraintsWith @Any lookups' tx'
@@ -117,10 +132,10 @@ setSignature ::
   SetSignatureParams ->
   Contract w MajorityMultiSignSchema ContractError ()
 setSignature SetSignatureParams {..} = do
-  (utxoRef, datum) <- findUTxO mmsIdentifier
+  (utxoRef, datum, signerList) <- findUTxO mmsIdentifier
   let lookups = Constraints.otherScript (validatorFromIdentifier mmsIdentifier)
       tx =
-        mconcatMap Constraints.mustBeSignedBy currentKeys
+        makeSigningConstraint @Any signerList
           <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeyAct replaceKey replaceIndex)
           <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mmsIdentifier.asset 1)
   ledgerTx <- submitTxConstraintsWith @Any lookups tx

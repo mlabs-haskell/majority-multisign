@@ -32,7 +32,7 @@ import Plutus.Contract (
   throwError,
   utxosAt,
  )
-import Plutus.V1.Ledger.Api (TxInfo (..), TxOut (..), TxOutRef)
+import Plutus.V1.Ledger.Api (TxInfo (..), TxOut (..), TxOutRef, fromBuiltinData)
 import Plutus.V1.Ledger.Contexts (findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
@@ -109,15 +109,17 @@ validatorAddress = Ledger.scriptAddress . validator
 validatorFromIdentifier :: MajorityMultiSignIdentifier -> Scripts.Validator
 validatorFromIdentifier MajorityMultiSignIdentifier {asset} = validator $ MajorityMultiSignValidatorParams asset
 
--- | Finds the UTxO in a majority multisign containing the asset, and returns it and its datum
-findUTxO :: forall (w :: Type) (s :: Row Type). MajorityMultiSignIdentifier -> Contract w s ContractError (TxOutRef, Datum)
+-- | Finds the UTxO in a majority multisign containing the asset, and returns it, its datum and the signer list
+findUTxO :: forall (w :: Type) (s :: Row Type). MajorityMultiSignIdentifier -> Contract w s ContractError (TxOutRef, Datum, [PubKeyHash])
 findUTxO mms = do
   utxos <- utxosAt $ scriptHashAddress mms.address
   let utxoFiltered = Map.toList $ Map.filter ((> 0) . flip assetClassValueOf mms.asset . txOutValue . Ledger.toTxOut) utxos
   case utxoFiltered of
     [(txOutRef, txOut)] ->
-      maybeToError "Couldn't extract datum" $
-        (txOutRef,) <$> getChainIndexTxOutDatum txOut
+      maybeToError "Couldn't extract datum" $ do
+        datum <- getChainIndexTxOutDatum txOut
+        typedDatum <- fromBuiltinData @MajorityMultiSignDatum $ getDatum datum
+        return (txOutRef, datum, typedDatum.signers)
     _ -> throwError $ OtherError "Couldn't find UTxO"
 
 -- | fromJust that gives a Contract error

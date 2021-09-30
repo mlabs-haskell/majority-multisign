@@ -64,7 +64,6 @@ PlutusTx.unstableMakeIsData ''MajorityMultiSignRedeemer
 -- | Params to the set signature endpoint
 data SetSignatureParams = SetSignatureParams
   { mmsIdentifier :: MajorityMultiSignIdentifier
-  , currentKeys :: [PubKeyHash] -- Keys that must sign the transaction to authorise a replacement
   , replaceIndex :: Integer
   , replaceKey :: PubKeyHash
   }
