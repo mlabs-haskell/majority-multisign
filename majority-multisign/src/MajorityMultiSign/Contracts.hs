@@ -7,6 +7,7 @@ import Cardano.Prelude (div, subsequences, (<>))
 import Control.Monad (void)
 import Data.Bifunctor (bimap)
 import Data.Kind (Type)
+import Data.List ((\\))
 import Data.List.Extra (mconcatMap)
 import Data.Monoid (Last (..))
 import Data.Row (Row)
@@ -134,6 +135,7 @@ setSignatures SetSignaturesParams {..} = do
   let lookups = Constraints.otherScript (validatorFromIdentifier mmsIdentifier)
       tx =
         makeSigningConstraint @Any signerList
+          <> mconcatMap Constraints.mustBeSignedBy (newKeys \\ signerList)
           <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
           <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mmsIdentifier.asset 1)
   ledgerTx <- submitTxConstraintsWith @Any lookups tx

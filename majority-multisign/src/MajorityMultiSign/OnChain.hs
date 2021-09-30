@@ -32,7 +32,7 @@ import Plutus.Contract (
   throwError,
   utxosAt,
  )
-import Plutus.V1.Ledger.Api (TxInfo (..), TxOut (..), TxOutRef, fromBuiltinData)
+import Plutus.V1.Ledger.Api (TxOut (..), TxOutRef, fromBuiltinData)
 import Plutus.V1.Ledger.Contexts (findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
@@ -48,13 +48,23 @@ mkValidator ::
   Bool
 mkValidator params dat red ctx =
   hasCorrectToken params ctx (getExpectedDatum red dat)
-    && isSufficientlySigned dat ctx
+    && isSufficientlySigned red dat ctx
+
+removeSigners :: [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
+removeSigners [] _ = []
+removeSigners xs [] = xs -- Not strictly needed, but more efficient
+removeSigners (x:xs) ys = if x `elem` ys then removeSigners xs ys else x:removeSigners xs ys
 
 -- | Calculates the expected output datum from the current datum and the redeemer
 {-# INLINEABLE getExpectedDatum #-}
 getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> MajorityMultiSignDatum
 getExpectedDatum UseSignaturesAct datum = datum
 getExpectedDatum UpdateKeysAct {..} datum = datum {signers = keys}
+
+-- | Checks if, when setting new signatures, all new keys have signed the transaction
+hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
+hasNewSignatures UseSignaturesAct _ _ = True
+hasNewSignatures UpdateKeysAct {..} MajorityMultiSignDatum {..} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
 
 -- | Checks the script has the correct token (containing the asset we want), forwards it to the right place, and has the datum we expect
 {-# INLINEABLE hasCorrectToken #-}
@@ -74,13 +84,13 @@ hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
 
 -- | Checks the validator is signed by more than half of the signers on the datum
 {-# INLINEABLE isSufficientlySigned #-}
-isSufficientlySigned :: MajorityMultiSignDatum -> ScriptContext -> Bool
-isSufficientlySigned MajorityMultiSignDatum {..} ctx = length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2)
+isSufficientlySigned :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
+isSufficientlySigned red dat@MajorityMultiSignDatum {..} ctx =
+  length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2)
+    && hasNewSignatures red dat ctx
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
     signersPresent :: [PubKeyHash]
-    signersPresent = filter (txSignedBy info) signers
+    signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signers
 
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =
