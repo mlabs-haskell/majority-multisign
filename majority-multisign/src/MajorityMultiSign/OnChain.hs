@@ -53,7 +53,7 @@ mkValidator params dat red ctx =
 removeSigners :: [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
 removeSigners [] _ = []
 removeSigners xs [] = xs -- Not strictly needed, but more efficient
-removeSigners (x:xs) ys = if x `elem` ys then removeSigners xs ys else x:removeSigners xs ys
+removeSigners (x : xs) ys = if x `elem` ys then removeSigners xs ys else x : removeSigners xs ys
 
 -- | Calculates the expected output datum from the current datum and the redeemer
 {-# INLINEABLE getExpectedDatum #-}
