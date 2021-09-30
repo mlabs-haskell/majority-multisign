@@ -1,9 +1,14 @@
-module MajorityMultiSign (main) where
+module MajorityMultiSign (endpoints) where
 
-import MajorityMultiSign.Contracts ()
-import MajorityMultiSign.OnChain ()
-import MajorityMultiSign.Schema ()
-import Prelude (IO, return)
+import Data.Monoid (Last)
+import MajorityMultiSign.Contracts (initialize, setSignature)
+import MajorityMultiSign.Schema (MajorityMultiSignSchema)
+import Plutus.Contract (Contract, ContractError, endpoint, selectList)
+import Plutus.V1.Ledger.Value (AssetClass)
 
-main :: IO ()
-main = return ()
+endpoints :: Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
+endpoints =
+  selectList
+    [ endpoint @"Initialize" initialize
+    , endpoint @"SetSignature" setSignature
+    ]

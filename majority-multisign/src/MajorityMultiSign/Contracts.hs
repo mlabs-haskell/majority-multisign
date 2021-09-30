@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module MajorityMultiSign.Contracts (initialize, submitSignedTxConstraintsWith, setSignature) where
 
@@ -32,6 +33,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (..),
+  SetSignatureParams (..),
  )
 import Playground.Contract (Tx)
 import Plutus.Contract (
@@ -42,7 +44,8 @@ import Plutus.Contract (
   submitTxConstraintsWith,
   tell,
  )
-import Plutus.Contracts.Currency (CurrencyError, currencySymbol, mintContract)
+import Plutus.Contract.Types (mapError)
+import Plutus.Contracts.Currency (CurrencyError (..), currencySymbol, mintContract)
 import Plutus.V1.Ledger.Api (
   Datum (..),
   PubKeyHash,
@@ -56,10 +59,13 @@ import PlutusTx.Prelude hiding ((<>))
 multiSignTokenName :: TokenName
 multiSignTokenName = "MajorityMultiSignDatum"
 
-initialize :: MajorityMultiSignDatum -> Contract (Last AssetClass) MajorityMultiSignSchema CurrencyError ()
+unwrapCurErr :: CurrencyError -> ContractError
+unwrapCurErr (CurContractError c) = c
+
+initialize :: MajorityMultiSignDatum -> Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
 initialize dat = do
   pkh <- pubKeyHash <$> ownPubKey
-  oneshotCS <- currencySymbol <$> mintContract pkh [(multiSignTokenName, 1)]
+  oneshotCS <- mapError unwrapCurErr $ currencySymbol <$> mintContract pkh [(multiSignTokenName, 1)]
   let oneshotAsset :: AssetClass
       oneshotAsset = assetClass oneshotCS multiSignTokenName
       params :: MajorityMultiSignValidatorParams
@@ -98,17 +104,14 @@ submitSignedTxConstraintsWith mms keys lookups tx = do
 
 setSignature ::
   forall (w :: Type).
-  MajorityMultiSignIdentifier ->
-  [PubKeyHash] ->
-  Integer ->
-  PubKeyHash ->
+  SetSignatureParams ->
   Contract w MajorityMultiSignSchema ContractError ()
-setSignature mms keys i key = do
-  (utxoRef, datum) <- findUTxO mms
-  let lookups = Constraints.otherScript (validatorFromIdentifier mms)
+setSignature SetSignatureParams {..} = do
+  (utxoRef, datum) <- findUTxO mmsIdentifier
+  let lookups = Constraints.otherScript (validatorFromIdentifier mmsIdentifier)
       tx =
-        mconcatMap Constraints.mustBeSignedBy keys
-          <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeyAct key i)
-          <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mms.asset 1)
+        mconcatMap Constraints.mustBeSignedBy currentKeys
+          <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeyAct replaceKey replaceIndex)
+          <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mmsIdentifier.asset 1)
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
   void $ awaitTxConfirmed $ txId ledgerTx
