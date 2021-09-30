@@ -24,6 +24,7 @@ import Plutus.V1.Ledger.Value (AssetClass)
 import PlutusTx qualified
 import PlutusTx.Prelude
 
+-- | Data type used to identify a majority multisign validator (the validator itself and the asset needed to call it)
 data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
   { address :: ValidatorHash
   , asset :: AssetClass
@@ -33,12 +34,15 @@ data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignIdentifier
 
+-- | Params to the majority multisign validator, as the asset class of the `MajorityMultiSignDatum`
 data MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
   { asset :: AssetClass
   }
 
 PlutusTx.makeLift ''MajorityMultiSignValidatorParams
 
+-- | Datum held by the validator, storing the pub keys of the signatures needed
+-- | This is also used as the params to the initialize endpoint
 data MajorityMultiSignDatum = MajorityMultiSignDatum
   { signers :: [PubKeyHash]
   }
@@ -47,6 +51,7 @@ data MajorityMultiSignDatum = MajorityMultiSignDatum
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignDatum
 
+-- | Redeemer of the validator, allowing for simple use (not modifying datum), or key updating
 data MajorityMultiSignRedeemer
   = UseSignaturesAct
   | UpdateKeyAct
@@ -56,9 +61,10 @@ data MajorityMultiSignRedeemer
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignRedeemer
 
+-- | Params to the set signature endpoint
 data SetSignatureParams = SetSignatureParams
   { mmsIdentifier :: MajorityMultiSignIdentifier
-  , currentKeys :: [PubKeyHash]
+  , currentKeys :: [PubKeyHash] -- Keys that must sign the transaction to authorise a replacement
   , replaceIndex :: Integer
   , replaceKey :: PubKeyHash
   }

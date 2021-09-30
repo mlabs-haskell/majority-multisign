@@ -56,12 +56,17 @@ import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx (toBuiltinData)
 import PlutusTx.Prelude hiding ((<>))
 
+-- | Token name for the MajorityMultiSignDatum
 multiSignTokenName :: TokenName
 multiSignTokenName = "MajorityMultiSignDatum"
 
+-- | Extracts the ContractError from a CurrencyError
 unwrapCurErr :: CurrencyError -> ContractError
 unwrapCurErr (CurContractError c) = c
 
+{- | Mints the oneshot for a validator, sends it to the precalculated validator address with the correct datum.
+  Writes the asset to observable state
+-}
 initialize :: MajorityMultiSignDatum -> Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
 initialize dat = do
   pkh <- pubKeyHash <$> ownPubKey
@@ -80,6 +85,10 @@ initialize dat = do
   void $ awaitTxConfirmed $ txId ledgerTx
   tell $ Last $ Just oneshotAsset
 
+{- | Wrapper for submitTxConstraintsWith that adds the lookups and constraints for using a majority multisign validator in the transaction
+  Due to limitations of plutus and submitTxConstraintsWith, the lookups passed here must be generic, typed validators cannot be passed in directly,
+    and must instead be converted to normal validators first.
+-}
 submitSignedTxConstraintsWith ::
   forall (a :: Type) (w :: Type) (s :: Row Type).
   ( ToData (RedeemerType a)
@@ -102,6 +111,7 @@ submitSignedTxConstraintsWith mms keys lookups tx = do
           <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mms.asset 1)
   submitTxConstraintsWith @Any lookups' tx'
 
+-- | Sets one of the signatures in a multisign validator given enough signatures on the tx
 setSignature ::
   forall (w :: Type).
   SetSignatureParams ->

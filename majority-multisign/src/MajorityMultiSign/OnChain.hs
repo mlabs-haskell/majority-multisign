@@ -39,6 +39,7 @@ import PlutusTx qualified
 import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger, lessThanEqualsInteger)
 import PlutusTx.Prelude hiding (take)
 
+-- Replaces a value in a list by index
 {-# INLINEABLE replaceIndex #-}
 -- Must be implemented with direct recursion as onchain list manipulation is not well supported in plutus.
 replaceIndex :: Integer -> PubKeyHash -> [PubKeyHash] -> [PubKeyHash]
@@ -58,11 +59,13 @@ mkValidator params dat red ctx =
   hasCorrectToken params ctx (getExpectedDatum red dat)
     && isSufficientlySigned dat ctx
 
+-- | Calculates the expected output datum from the current datum and the redeemer
 {-# INLINEABLE getExpectedDatum #-}
 getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> MajorityMultiSignDatum
 getExpectedDatum UseSignaturesAct datum = datum
 getExpectedDatum UpdateKeyAct {..} datum = datum {signers = replaceIndex index newKey $ signers datum}
 
+-- | Checks the script has the correct token (containing the asset we want), forwards it to the right place, and has the datum we expect
 {-# INLINEABLE hasCorrectToken #-}
 hasCorrectToken :: MajorityMultiSignValidatorParams -> ScriptContext -> MajorityMultiSignDatum -> Bool
 hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
@@ -78,6 +81,7 @@ hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
     assetTxOut :: Maybe TxOut
     assetTxOut = firstJust checkAsset continuing
 
+-- | Checks the validator is signed by more than half of the signers on the datum
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignDatum -> ScriptContext -> Bool
 isSufficientlySigned MajorityMultiSignDatum {..} ctx = length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2)
@@ -101,9 +105,11 @@ validator = TypedScripts.validatorScript . inst
 validatorAddress :: MajorityMultiSignValidatorParams -> Ledger.Address
 validatorAddress = Ledger.scriptAddress . validator
 
+-- | Gets the validator from an identifier
 validatorFromIdentifier :: MajorityMultiSignIdentifier -> Scripts.Validator
 validatorFromIdentifier MajorityMultiSignIdentifier {asset} = validator $ MajorityMultiSignValidatorParams asset
 
+-- | Finds the UTxO in a majority multisign containing the asset, and returns it and its datum
 findUTxO :: forall (w :: Type) (s :: Row Type). MajorityMultiSignIdentifier -> Contract w s ContractError (TxOutRef, Datum)
 findUTxO mms = do
   utxos <- utxosAt $ scriptHashAddress mms.address
@@ -114,6 +120,7 @@ findUTxO mms = do
         (txOutRef,) <$> getChainIndexTxOutDatum txOut
     _ -> throwError $ OtherError "Couldn't find UTxO"
 
+-- | fromJust that gives a Contract error
 maybeToError ::
   forall (w :: Type) (s :: Row Type) (a :: Type).
   Text ->
@@ -121,6 +128,7 @@ maybeToError ::
   Contract w s ContractError a
 maybeToError err = maybe (throwError $ OtherError err) return
 
+-- | Extracts the datum from a ChainIndexTxOut
 getChainIndexTxOutDatum :: ChainIndexTxOut -> Maybe Datum
 getChainIndexTxOutDatum PublicKeyChainIndexTxOut {} = Nothing
 getChainIndexTxOutDatum ScriptChainIndexTxOut {_ciTxOutDatum = eDatum} = rightToMaybe eDatum

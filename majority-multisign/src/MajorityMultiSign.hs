@@ -6,6 +6,7 @@ import MajorityMultiSign.Schema (MajorityMultiSignSchema)
 import Plutus.Contract (Contract, ContractError, endpoint, selectList)
 import Plutus.V1.Ledger.Value (AssetClass)
 
+-- | Plutus playground API
 endpoints :: Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
 endpoints =
   selectList
