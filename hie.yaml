@@ -1,0 +1,6 @@
+cradle:
+  cabal:
+    - path: "./src"
+      component: "lib:majority-multisign"
+    - path: "./test"
+      component: "test:majority-multisign-test"

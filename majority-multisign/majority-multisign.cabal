@@ -1,0 +1,89 @@
+cabal-version:      3.0
+name:               majority-multisign
+version:            1.0
+extra-source-files: CHANGELOG.md
+
+common lang
+  default-extensions:
+    NoImplicitPrelude
+    BangPatterns
+    BinaryLiterals
+    ConstraintKinds
+    DataKinds
+    DeriveFunctor
+    DeriveGeneric
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    DuplicateRecordFields
+    EmptyCase
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    GeneralizedNewtypeDeriving
+    HexFloatLiterals
+    ImportQualifiedPost
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NumericUnderscores
+    OverloadedStrings
+    ScopedTypeVariables
+    StandaloneDeriving
+    TupleSections
+    TypeApplications
+    TypeOperators
+    TypeSynonymInstances
+    UndecidableInstances
+
+  build-depends:
+    , base                     ^>=4.14
+    , record-dot-preprocessor  ^>=0.2.11
+    , record-hasfield          ^>=1.0
+
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
+    -Wmissing-export-lists -Werror -Wincomplete-record-updates
+    -Wmissing-deriving-strategies
+    -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+    -fobject-code -fno-strictness -fplugin=RecordDotPreprocessor
+
+  default-language:   Haskell2010
+
+library
+  import:          lang
+  exposed-modules:
+    MajorityMultiSign
+
+  build-depends:
+    , aeson              ^>=1.5.6.0
+    , freer-simple       ^>=1.2.1.1
+    , lens               ^>=4.19.2
+    , plutus-contract
+    , plutus-ledger
+    , plutus-ledger-api
+    , plutus-pab
+    , plutus-tx
+    , prettyprinter      ^>=1.7.0
+    , row-types          ^>=1.0.1.0
+
+  hs-source-dirs:  src
+
+test-suite majority-multisign-test
+  import:         lang
+  type:           exitcode-stdio-1.0
+  main-is:        Spec.hs
+  other-modules:
+
+  build-depends:
+    , majority-multisign
+    , plutus-contract
+    , plutus-ledger
+    , plutus-ledger-api
+    , plutus-tx
+    , QuickCheck         ^>=2.14.2
+    , tasty              ^>=1.4.1
+    , tasty-quickcheck   ^>=0.10.1.2
+
+  hs-source-dirs: test
