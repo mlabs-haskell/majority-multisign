@@ -45,9 +45,9 @@ common lang
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Werror -Wincomplete-record-updates
-    -Wmissing-deriving-strategies
-    -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
-    -fobject-code -fno-strictness -fplugin=RecordDotPreprocessor
+    -Wmissing-deriving-strategies -fno-ignore-interface-pragmas
+    -fno-omit-interface-pragmas -fobject-code -fno-strictness
+    -fplugin=RecordDotPreprocessor
 
   default-language:   Haskell2010
 
@@ -84,16 +84,15 @@ test-suite majority-multisign-test
   import:         lang
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
-  other-modules:
-
+  other-modules:  Spec.SetSignature
   build-depends:
     , majority-multisign
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
     , plutus-tx
-    , QuickCheck         ^>=2.14.2
-    , tasty              ^>=1.4.1
-    , tasty-quickcheck   ^>=0.10.1.2
+    , QuickCheck          ^>=2.14.2
+    , tasty               ^>=1.4.1
+    , tasty-quickcheck    ^>=0.10.1.2
 
   hs-source-dirs: test

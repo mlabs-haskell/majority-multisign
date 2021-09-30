@@ -70,7 +70,7 @@ format: requires_nix_shell
 format_check: requires_nix_shell
 	fourmolu --mode check --check-idempotence $(FORMAT_EXTENSIONS) $(FORMAT_SOURCES)
 
-CABAL_SOURCES := $(shell git ls-tree -r HEAD --full-tree --name-only | grep -E '.*\.cabal' )
+CABAL_SOURCES := ./majority-multisign.cabal
 
 cabalfmt: requires_nix_shell
 	cabal-fmt --inplace $(CABAL_SOURCES)

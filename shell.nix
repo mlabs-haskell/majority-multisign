@@ -37,6 +37,7 @@ with import ./nix { };
       ghc
       nixfmt
       plutus.plutus.hlint
+      haskellPackages.cabal-fmt
 
       plutus.plutus.haskell-language-server
 

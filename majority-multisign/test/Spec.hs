@@ -1,9 +1,15 @@
-import Test.Tasty (defaultMain, testGroup)
+module Main (main) where
+
+import Spec.SetSignature qualified
+import Test.Tasty (TestTree, defaultMain, testGroup)
 import Prelude
 
 main :: IO ()
-main =
-  defaultMain $
-    testGroup
-      "Suites"
-      []
+main = defaultMain tests
+
+tests :: TestTree
+tests =
+  testGroup
+    "Majority Multisign"
+    [ Spec.SetSignature.tests
+    ]
