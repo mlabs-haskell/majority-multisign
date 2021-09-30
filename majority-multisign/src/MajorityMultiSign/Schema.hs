@@ -41,8 +41,9 @@ data MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
 
 PlutusTx.makeLift ''MajorityMultiSignValidatorParams
 
--- | Datum held by the validator, storing the pub keys of the signatures needed
--- | This is also used as the params to the initialize endpoint
+{- | Datum held by the validator, storing the pub keys of the signatures needed
+  This is also used as the params to the initialize endpoint
+-}
 data MajorityMultiSignDatum = MajorityMultiSignDatum
   { signers :: [PubKeyHash]
   }

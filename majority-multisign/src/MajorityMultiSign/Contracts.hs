@@ -86,17 +86,15 @@ initialize dat = do
   void $ awaitTxConfirmed $ txId ledgerTx
   tell $ Last $ Just oneshotAsset
 
--- | Gets all minimal sets of keys that would pass validation. For a 5 key system, this will generate 10 sets.
--- TODO: Optimise this, there is no need to generate all subsets and filter.
+{- | Gets all minimal sets of keys that would pass validation. For a 5 key system, this will generate 10 sets.
+ TODO: Optimise this, there is no need to generate all subsets and filter.
+-}
 getValidSignSets :: [PubKeyHash] -> [[PubKeyHash]]
 getValidSignSets ps = filter ((== (length ps + 1) `div` 2) . length) $ subsequences ps
 
 -- | Creates the constraint for signing, this scales as `getValidSignSets` does
 makeSigningConstraint ::
   forall (a :: Type).
-  ( ToData (RedeemerType a)
-  , ToData (DatumType a)
-  ) =>
   [PubKeyHash] ->
   TxConstraints (RedeemerType a) (DatumType a)
 makeSigningConstraint keys = Constraints.mustSatisfyAnyOf $ mconcatMap Constraints.mustBeSignedBy <$> getValidSignSets keys
