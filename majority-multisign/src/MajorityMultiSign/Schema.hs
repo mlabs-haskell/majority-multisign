@@ -11,7 +11,7 @@ module MajorityMultiSign.Schema (
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (..),
-  SetSignatureParams (..),
+  SetSignaturesParams (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -22,7 +22,6 @@ import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Scripts (ValidatorHash)
 import Plutus.V1.Ledger.Value (AssetClass)
 import PlutusTx qualified
-import PlutusTx.Prelude
 
 -- | Data type used to identify a majority multisign validator (the validator itself and the asset needed to call it)
 data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
@@ -55,23 +54,21 @@ PlutusTx.unstableMakeIsData ''MajorityMultiSignDatum
 -- | Redeemer of the validator, allowing for simple use (not modifying datum), or key updating
 data MajorityMultiSignRedeemer
   = UseSignaturesAct
-  | UpdateKeyAct
-      { newKey :: PubKeyHash
-      , index :: Integer
+  | UpdateKeysAct
+      { keys :: [PubKeyHash]
       }
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignRedeemer
 
 -- | Params to the set signature endpoint
-data SetSignatureParams = SetSignatureParams
+data SetSignaturesParams = SetSignaturesParams
   { mmsIdentifier :: MajorityMultiSignIdentifier
-  , replaceIndex :: Integer
-  , replaceKey :: PubKeyHash
+  , newKeys :: [PubKeyHash]
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON)
 
-PlutusTx.unstableMakeIsData ''SetSignatureParams
+PlutusTx.unstableMakeIsData ''SetSignaturesParams
 
 data MajorityMultiSign
 
@@ -81,4 +78,4 @@ instance Scripts.ValidatorTypes MajorityMultiSign where
 
 type MajorityMultiSignSchema =
   Endpoint "Initialize" MajorityMultiSignDatum
-    .\/ Endpoint "SetSignature" SetSignatureParams
+    .\/ Endpoint "SetSignatures" SetSignaturesParams

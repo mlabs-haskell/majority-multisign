@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module MajorityMultiSign.Contracts (initialize, submitSignedTxConstraintsWith, setSignature, getValidSignSets) where
+module MajorityMultiSign.Contracts (initialize, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
 
 import Cardano.Prelude (div, subsequences, (<>))
 import Control.Monad (void)
@@ -34,7 +34,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (..),
-  SetSignatureParams (..),
+  SetSignaturesParams (..),
  )
 import Playground.Contract (Tx)
 import Plutus.Contract (
@@ -125,16 +125,16 @@ submitSignedTxConstraintsWith mms lookups tx = do
   submitTxConstraintsWith @Any lookups' tx'
 
 -- | Sets one of the signatures in a multisign validator given enough signatures on the tx
-setSignature ::
+setSignatures ::
   forall (w :: Type).
-  SetSignatureParams ->
+  SetSignaturesParams ->
   Contract w MajorityMultiSignSchema ContractError ()
-setSignature SetSignatureParams {..} = do
+setSignatures SetSignaturesParams {..} = do
   (utxoRef, datum, signerList) <- findUTxO mmsIdentifier
   let lookups = Constraints.otherScript (validatorFromIdentifier mmsIdentifier)
       tx =
         makeSigningConstraint @Any signerList
-          <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeyAct replaceKey replaceIndex)
+          <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
           <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mmsIdentifier.asset 1)
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
   void $ awaitTxConfirmed $ txId ledgerTx

@@ -36,17 +36,8 @@ import Plutus.V1.Ledger.Api (TxInfo (..), TxOut (..), TxOutRef, fromBuiltinData)
 import Plutus.V1.Ledger.Contexts (findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
-import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger, lessThanEqualsInteger)
+import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
 import PlutusTx.Prelude hiding (take)
-
--- Replaces a value in a list by index
-{-# INLINEABLE replaceIndex #-}
--- Must be implemented with direct recursion as onchain list manipulation is not well supported in plutus.
-replaceIndex :: Integer -> PubKeyHash -> [PubKeyHash] -> [PubKeyHash]
-replaceIndex _ _ [] = []
-replaceIndex i x' (x : xs)
-  | i `lessThanEqualsInteger` 0 = x' : xs
-  | otherwise = x : replaceIndex (i -1) x' xs
 
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
@@ -63,7 +54,7 @@ mkValidator params dat red ctx =
 {-# INLINEABLE getExpectedDatum #-}
 getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> MajorityMultiSignDatum
 getExpectedDatum UseSignaturesAct datum = datum
-getExpectedDatum UpdateKeyAct {..} datum = datum {signers = replaceIndex index newKey $ signers datum}
+getExpectedDatum UpdateKeysAct {..} datum = datum {signers = keys}
 
 -- | Checks the script has the correct token (containing the asset we want), forwards it to the right place, and has the datum we expect
 {-# INLINEABLE hasCorrectToken #-}
