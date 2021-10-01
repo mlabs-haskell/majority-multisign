@@ -7,6 +7,7 @@ module MajorityMultiSign.OnChain (
   validator,
   validatorAddress,
   validatorFromIdentifier,
+  validatorHash,
 ) where
 
 import Cardano.Prelude (rightToMaybe)
@@ -102,6 +103,9 @@ inst params =
 
 validator :: MajorityMultiSignValidatorParams -> Scripts.Validator
 validator = TypedScripts.validatorScript . inst
+
+validatorHash :: MajorityMultiSignValidatorParams -> Scripts.ValidatorHash
+validatorHash = TypedScripts.validatorHash . inst
 
 validatorAddress :: MajorityMultiSignValidatorParams -> Ledger.Address
 validatorAddress = Ledger.scriptAddress . validator
