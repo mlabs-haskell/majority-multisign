@@ -22,13 +22,14 @@ import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Scripts (ValidatorHash)
 import Plutus.V1.Ledger.Value (AssetClass)
 import PlutusTx qualified
+import Prelude (Eq, Show)
 
 -- | Data type used to identify a majority multisign validator (the validator itself and the asset needed to call it)
 data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
   { address :: ValidatorHash
   , asset :: AssetClass
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignIdentifier
@@ -46,7 +47,7 @@ PlutusTx.makeLift ''MajorityMultiSignValidatorParams
 data MajorityMultiSignDatum = MajorityMultiSignDatum
   { signers :: [PubKeyHash]
   }
-  deriving stock (Generic)
+  deriving stock (Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignDatum

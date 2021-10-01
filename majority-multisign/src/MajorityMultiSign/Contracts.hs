@@ -83,9 +83,9 @@ initialize dat = do
           (validatorHash $ validator params)
           (Scripts.Datum $ toBuiltinData dat)
           (assetClassValue oneshotAsset 1)
+  tell $ Last $ Just oneshotAsset
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ txId ledgerTx
-  tell $ Last $ Just oneshotAsset
 
 {- | Gets all minimal sets of keys that would pass validation. For a 5 key system, this will generate 10 sets.
  TODO: Optimise this, there is no need to generate all subsets and filter.

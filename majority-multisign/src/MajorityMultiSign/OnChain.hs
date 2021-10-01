@@ -107,7 +107,7 @@ validator = TypedScripts.validatorScript . inst
 validatorHash :: MajorityMultiSignValidatorParams -> Scripts.ValidatorHash
 validatorHash = TypedScripts.validatorHash . inst
 
-validatorAddress :: MajorityMultiSignValidatorParams -> Ledger.Address
+validatorAddress :: MajorityMultiSignValidatorParams -> Address
 validatorAddress = Ledger.scriptAddress . validator
 
 -- | Gets the validator from an identifier
