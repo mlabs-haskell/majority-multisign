@@ -32,8 +32,9 @@ source-repository-package
     quickcheck-dynamic
     web-ghc
     word-array
+    stubs/plutus-ghc-stub
   -- Update plutus revision here! Make sure this matches `cat ./nix/sources.json | jq '.plutus.rev'`
-  tag: 289ac956a33c14fe1d75d6c0a6d6100f96a7d22c
+  tag: f7466c86fe3afc593746e44257adbf7785f7cedb
 
 
 -- The following sections are copied from the 'plutus' repository cabal.project at the revision
@@ -44,7 +45,7 @@ source-repository-package
 
 ---------- *replace here* ----------------------------------------------------------------------
 
--- You never, ever, want this.
+-- We never, ever, want this.
 write-ghc-environment-files: never
 
 -- Always build tests and benchmarks.
@@ -52,7 +53,7 @@ tests: true
 benchmarks: true
 
 -- The only sensible test display option
-test-show-details: direct
+test-show-details: streaming
 
 allow-newer:
            -- Pins to an old version of Template Haskell, unclear if/when it will be updated
@@ -92,8 +93,7 @@ package cardano-api
 -- when decoding invalid (e.g. malicious) text literals.
 source-repository-package
   type: git
-  -- location: https://github.com/Quid2/flat.git
-  location: https://github.com/michaelpj/flat.git
+  location: https://github.com/Quid2/flat.git
   tag: ee59880f47ab835dbd73bea0847dab7869fc20d8
 
 -- Needs some patches, but upstream seems to be fairly dead (no activity in > 1 year)
@@ -115,17 +115,17 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-base
-  tag: cb0f19c85e5bb5299839ad4ed66af6fa61322cc4
+  tag: 46502694f6a9f0498f822068008b232b3837a9e9
   subdir:
     base-deriving-via
     binary
     binary/test
-    measures
-    orphans-deriving-via
-    slotting
     cardano-crypto-class
     cardano-crypto-praos
     cardano-crypto-tests
+    measures
+    orphans-deriving-via
+    slotting
     strict-containers
 
 source-repository-package
@@ -139,7 +139,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/ouroboros-network
-  tag: 877ce057ff6fb086474c8eaad53f2b7f0e0fce6b
+  tag: 6d00ff77f9bcd769fb6d7fd02216cec4e837bfcf
   subdir:
     monoidal-synchronisation
     typed-protocols
@@ -158,7 +158,17 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/iohk-monitoring-framework
-  tag: 808724ff8a19a33d0ed06f9ef59fbd900b08553c
+  -- Important Note: Read below, before changing this!
+  tag: 46f994e216a1f8b36fe4669b47b2a7011b0e153c
+  -- Are you thinking of updating this tag to some other commit?  Please
+  -- ensure that the commit you are about to use is the latest one from
+  -- the *develop* branch of this repo:
+  --   * <https://github.com/input-output-hk/iohk-monitoring-framework/commits/develop>
+  -- (not master!)
+  --
+  -- In particular we rely on the code from this PR:
+  --  * <https://github.com/input-output-hk/iohk-monitoring-framework/pull/622>
+  -- being merged.
   subdir:
     iohk-monitoring
     tracer-transformers
@@ -172,7 +182,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-ledger-specs
-  tag: d5b184a820853c7ba202efd615b8fadca1acb52c
+  tag: 8efcfc755faae4db3a64ad45343235fce3ed5c47
   subdir:
     byron/chain/executable-spec
     byron/crypto
@@ -195,7 +205,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-node.git
-  tag: ed11e8b6429d4af1cb2539460e5cb2283a06b2dc
+  tag: 8cf2b208c7708bd890c7e74d5b1d7c4167a3b40b
   subdir:
     cardano-api
     cardano-node
