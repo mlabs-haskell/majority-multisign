@@ -115,7 +115,7 @@ validatorFromIdentifier :: MajorityMultiSignIdentifier -> Scripts.Validator
 validatorFromIdentifier MajorityMultiSignIdentifier {asset} = validator $ MajorityMultiSignValidatorParams asset
 
 -- | Finds the UTxO in a majority multisign containing the asset, and returns it, its datum and the signer list
-findUTxO :: forall (w :: Type) (s :: Row Type). MajorityMultiSignIdentifier -> Contract w s ContractError (TxOutRef, Datum, [PubKeyHash])
+findUTxO :: forall (w :: Type) (s :: Row Type). MajorityMultiSignIdentifier -> Contract w s ContractError ((TxOutRef, ChainIndexTxOut), Datum, [PubKeyHash])
 findUTxO mms = do
   utxos <- utxosAt $ scriptHashAddress mms.address
   let utxoFiltered = Map.toList $ Map.filter ((> 0) . flip assetClassValueOf mms.asset . txOutValue . Ledger.toTxOut) utxos
@@ -124,7 +124,7 @@ findUTxO mms = do
       maybeToError "Couldn't extract datum" $ do
         datum <- getChainIndexTxOutDatum txOut
         typedDatum <- fromBuiltinData @MajorityMultiSignDatum $ getDatum datum
-        return (txOutRef, datum, typedDatum.signers)
+        return ((txOutRef, txOut), datum, typedDatum.signers)
     _ -> throwError $ OtherError "Couldn't find UTxO"
 
 -- | fromJust that gives a Contract error

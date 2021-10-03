@@ -3,7 +3,6 @@ module Spec.SetSignature (deployedWith, tests) where
 import Control.Monad (void)
 import Data.Monoid (Last (..))
 import MajorityMultiSign (endpoints)
-import MajorityMultiSign.Contracts (initialize)
 import MajorityMultiSign.OnChain (validatorAddress, validatorHash)
 import MajorityMultiSign.Schema (
   MajorityMultiSignDatum (..),
@@ -13,7 +12,6 @@ import MajorityMultiSign.Schema (
  )
 import Ledger (Address)
 import Ledger.Contexts (pubKeyHash)
-import Plutus.Contract.Request qualified as Contract
 import Plutus.Contract.Test
 import Plutus.Trace.Emulator as Emulator
 import Plutus.V1.Ledger.Api (PubKeyHash)
@@ -32,12 +30,12 @@ tests =
         ( assertNoFailedTransactions
             .&&. dataAtComputedAddress
               @MajorityMultiSignDatum
-              (endpoints <* Contract.waitNSlots 5)
-              (walletInstanceTag $ knownWallet 2)
+              endpoints
+              (walletInstanceTag $ knownWallet 1)
               getAddressFromWriter
               (== walletsToDatum (knownWallet <$> [3..7]))
         )
-        init
+        setSignaturesTrace
     ]
 
 getAddressFromWriter :: Last AssetClass -> Maybe Address
@@ -52,12 +50,6 @@ walletsToKeys = fmap $ pubKeyHash . walletPubKey
 
 walletsToDatum :: [Wallet] -> MajorityMultiSignDatum
 walletsToDatum = MajorityMultiSignDatum . walletsToKeys
-
-init :: EmulatorTrace ()
-init = do
-  h <- activateContractWallet deployer (endpoints <* Contract.waitNSlots 5)
-  callEndpoint @"Initialize" h $ walletsToDatum $ knownWallet <$> [2..6]
-  void $ waitNSlots 2
 
 deployedWith :: [Wallet] -> EmulatorTrace MajorityMultiSignIdentifier
 deployedWith ws = do

@@ -9,6 +9,7 @@ import Data.Bifunctor (bimap)
 import Data.Kind (Type)
 import Data.List ((\\))
 import Data.List.Extra (mconcatMap)
+import Data.Map qualified as Map
 import Data.Monoid (Last (..))
 import Data.Row (Row)
 import Data.Void (Void)
@@ -114,14 +115,17 @@ submitSignedTxConstraintsWith ::
   TxConstraints (RedeemerType a) (DatumType a) ->
   Contract w s ContractError Tx
 submitSignedTxConstraintsWith mms lookups tx = do
-  (utxoRef, datum, signerList) <- findUTxO mms
+  (txOutData, datum, signerList) <- findUTxO mms
   let lookups' :: ScriptLookups Any
-      lookups' = lookups <> Constraints.otherScript (validatorFromIdentifier mms)
+      lookups' =
+        lookups
+          <> Constraints.otherScript (validatorFromIdentifier mms)
+          <> Constraints.unspentOutputs (uncurry Map.singleton txOutData)
       tx' :: TxConstraints BuiltinData BuiltinData
       tx' =
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
           <> makeSigningConstraint @Any signerList
-          <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
+          <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
           <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mms.asset 1)
   submitTxConstraintsWith @Any lookups' tx'
 
@@ -131,12 +135,14 @@ setSignatures ::
   SetSignaturesParams ->
   Contract w MajorityMultiSignSchema ContractError ()
 setSignatures SetSignaturesParams {..} = do
-  (utxoRef, datum, signerList) <- findUTxO mmsIdentifier
-  let lookups = Constraints.otherScript (validatorFromIdentifier mmsIdentifier)
+  (txOutData, datum, signerList) <- findUTxO mmsIdentifier
+  let lookups =
+        Constraints.otherScript (validatorFromIdentifier mmsIdentifier)
+          <> Constraints.unspentOutputs (uncurry Map.singleton txOutData)
       tx =
         makeSigningConstraint @Any signerList
           <> mconcatMap Constraints.mustBeSignedBy (newKeys \\ signerList)
-          <> Constraints.mustSpendScriptOutput utxoRef (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
+          <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
           <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mmsIdentifier.asset 1)
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
   void $ awaitTxConfirmed $ txId ledgerTx

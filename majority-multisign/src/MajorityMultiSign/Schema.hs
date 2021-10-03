@@ -47,7 +47,7 @@ PlutusTx.makeLift ''MajorityMultiSignValidatorParams
 data MajorityMultiSignDatum = MajorityMultiSignDatum
   { signers :: [PubKeyHash]
   }
-  deriving stock (Eq, Generic)
+  deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignDatum
