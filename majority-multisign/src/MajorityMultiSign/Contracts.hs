@@ -3,12 +3,11 @@
 
 module MajorityMultiSign.Contracts (initialize, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
 
-import Cardano.Prelude (div, subsequences, (<>))
+import Cardano.Prelude (div, foldMap, subsequences, (<>))
 import Control.Monad (void)
 import Data.Bifunctor (bimap)
 import Data.Kind (Type)
 import Data.List ((\\))
-import Data.List.Extra (mconcatMap)
 import Data.Map qualified as Map
 import Data.Monoid (Last (..))
 import Data.Row (Row)
@@ -23,15 +22,16 @@ import Ledger (
 import Ledger.Constraints (ScriptLookups, TxConstraints)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.TxConstraints qualified as Constraints
+import Ledger.Crypto (PubKey)
 import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts (
   Any,
   DatumType,
   RedeemerType,
  )
-import MajorityMultiSign.OnChain (findUTxO, validator, validatorFromIdentifier)
+import MajorityMultiSign.OnChain (findUTxO, validator, validatorFromIdentifier, validatorHashFromIdentifier)
 import MajorityMultiSign.Schema (
-  MajorityMultiSignDatum,
+  MajorityMultiSignDatum (..),
   MajorityMultiSignIdentifier (..),
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignSchema,
@@ -41,11 +41,12 @@ import MajorityMultiSign.Schema (
 import Playground.Contract (Tx)
 import Plutus.Contract (
   Contract,
-  ContractError,
+  ContractError (..),
   awaitTxConfirmed,
   ownPubKey,
   submitTxConstraintsWith,
   tell,
+  throwError,
  )
 import Plutus.Contract.Types (mapError)
 import Plutus.Contracts.Currency (CurrencyError (..), currencySymbol, mintContract)
@@ -57,7 +58,7 @@ import Plutus.V1.Ledger.Api (
  )
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx (toBuiltinData)
-import PlutusTx.Prelude hiding ((<>))
+import PlutusTx.Prelude hiding (foldMap, (<>))
 
 -- | Token name for the MajorityMultiSignDatum
 multiSignTokenName :: TokenName
@@ -97,9 +98,9 @@ getValidSignSets ps = filter ((== (length ps + 1) `div` 2) . length) $ subsequen
 -- | Creates the constraint for signing, this scales as `getValidSignSets` does
 makeSigningConstraint ::
   forall (a :: Type).
-  [PubKeyHash] ->
+  [[PubKeyHash]] ->
   TxConstraints (RedeemerType a) (DatumType a)
-makeSigningConstraint keys = Constraints.mustSatisfyAnyOf $ mconcatMap Constraints.mustBeSignedBy <$> getValidSignSets keys
+makeSigningConstraint keyOptions = Constraints.mustSatisfyAnyOf $ foldMap Constraints.mustBeSignedBy <$> keyOptions
 
 {- | Wrapper for submitTxConstraintsWith that adds the lookups and constraints for using a majority multisign validator in the transaction
   Due to limitations of plutus and submitTxConstraintsWith, the lookups passed here must be generic, typed validators cannot be passed in directly,
@@ -111,23 +112,35 @@ submitSignedTxConstraintsWith ::
   , ToData (DatumType a)
   ) =>
   MajorityMultiSignIdentifier ->
+  [PubKey] ->
   ScriptLookups Any ->
   TxConstraints (RedeemerType a) (DatumType a) ->
   Contract w s ContractError Tx
-submitSignedTxConstraintsWith mms lookups tx = do
+submitSignedTxConstraintsWith mms pubKeys lookups tx = do
   (txOutData, datum, signerList) <- findUTxO mms
-  let lookups' :: ScriptLookups Any
+  let keyOptions :: [[PubKeyHash]]
+      keyOptions = getValidSignSets signerList
+      lookups' :: ScriptLookups Any
       lookups' =
         lookups
           <> Constraints.otherScript (validatorFromIdentifier mms)
           <> Constraints.unspentOutputs (uncurry Map.singleton txOutData)
+          <> foldMap Constraints.pubKey pubKeys
       tx' :: TxConstraints BuiltinData BuiltinData
       tx' =
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
-          <> makeSigningConstraint @Any signerList
+          <> makeSigningConstraint @Any keyOptions
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
           <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mms.asset 1)
+
+  unless (sufficientPubKeys pubKeys [] keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
+
   submitTxConstraintsWith @Any lookups' tx'
+
+sufficientPubKeys :: [PubKey] -> [PubKeyHash] -> [[PubKeyHash]] -> Bool
+sufficientPubKeys pubKeys req opts = null (req \\ pkhs) && any (null . (\\ pkhs)) opts
+  where
+    pkhs = pubKeyHash <$> pubKeys
 
 -- | Sets one of the signatures in a multisign validator given enough signatures on the tx
 setSignatures ::
@@ -135,14 +148,25 @@ setSignatures ::
   SetSignaturesParams ->
   Contract w MajorityMultiSignSchema ContractError ()
 setSignatures SetSignaturesParams {..} = do
-  (txOutData, datum, signerList) <- findUTxO mmsIdentifier
-  let lookups =
+  (txOutData, _, signerList) <- findUTxO mmsIdentifier
+
+  let keyOptions :: [[PubKeyHash]]
+      keyOptions = getValidSignSets signerList
+      datum :: Datum
+      datum = Datum $ PlutusTx.toBuiltinData $ MajorityMultiSignDatum newKeys
+      newKeysDiff :: [PubKeyHash]
+      newKeysDiff = newKeys \\ signerList
+      lookups =
         Constraints.otherScript (validatorFromIdentifier mmsIdentifier)
           <> Constraints.unspentOutputs (uncurry Map.singleton txOutData)
+          <> foldMap Constraints.pubKey pubKeys
       tx =
-        makeSigningConstraint @Any signerList
-          <> mconcatMap Constraints.mustBeSignedBy (newKeys \\ signerList)
+        makeSigningConstraint @Any keyOptions
+          <> foldMap Constraints.mustBeSignedBy newKeysDiff
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
-          <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mmsIdentifier.asset 1)
+          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (assetClassValue mmsIdentifier.asset 1)
+
+  unless (sufficientPubKeys pubKeys newKeysDiff keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
+
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
   void $ awaitTxConfirmed $ txId ledgerTx

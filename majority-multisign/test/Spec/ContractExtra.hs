@@ -1,6 +1,5 @@
 -- Copied from https://github.com/Liqwid-Labs/plutus-extra/blob/master/plutus-extra/src/Plutus/Contract/Test/Extra.hs and updated
 -- Plutus-extra is currently being bumped, use that once it is and update here to match
-
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 

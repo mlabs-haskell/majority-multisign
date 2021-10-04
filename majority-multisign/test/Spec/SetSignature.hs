@@ -2,6 +2,8 @@ module Spec.SetSignature (deployedWith, tests) where
 
 import Control.Monad (void)
 import Data.Monoid (Last (..))
+import Ledger (Address, PrivateKey)
+import Ledger.Contexts (pubKeyHash)
 import MajorityMultiSign (endpoints)
 import MajorityMultiSign.OnChain (validatorAddress, validatorHash)
 import MajorityMultiSign.Schema (
@@ -10,15 +12,14 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignValidatorParams (..),
   SetSignaturesParams (..),
  )
-import Ledger (Address)
-import Ledger.Contexts (pubKeyHash)
 import Plutus.Contract.Test
 import Plutus.Trace.Emulator as Emulator
 import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Value (AssetClass)
+import PlutusTx.Prelude hiding ((==))
 import Spec.ContractExtra (dataAtComputedAddress)
 import Test.Tasty (TestTree, testGroup)
-import PlutusTx.Prelude hiding ((==))
+import Wallet.Emulator.Wallet (WalletId (..), signPrivateKeys)
 import Prelude ((==))
 
 tests :: TestTree
@@ -33,7 +34,7 @@ tests =
               endpoints
               (walletInstanceTag $ knownWallet 1)
               getAddressFromWriter
-              (== walletsToDatum (knownWallet <$> [3..7]))
+              (== walletsToDatum (knownWallet <$> [3 .. 7]))
         )
         setSignaturesTrace
     ]
@@ -63,11 +64,16 @@ deployedWith ws = do
   let params = MajorityMultiSignValidatorParams oneshotAsset
   return $ MajorityMultiSignIdentifier (validatorHash params) oneshotAsset
 
+getPrivateKey :: Wallet -> PrivateKey
+getPrivateKey (Wallet (MockWallet prv)) = prv
+getPrivateKey (Wallet (XPubWallet _)) = error ()
+
 setSignaturesTrace :: EmulatorTrace ()
 setSignaturesTrace = do
-  mmsID <- deployedWith $ knownWallet <$> [2..6]
+  mmsID <- deployedWith $ knownWallet <$> [2 .. 6]
 
   h <- activateContractWallet (knownWallet 2) endpoints
-  
-  callEndpoint @"SetSignatures" h $ SetSignaturesParams mmsID $ walletsToKeys $ knownWallet <$> [3..7]
+
+  Emulator.setSigningProcess (knownWallet 2) $ signPrivateKeys $ getPrivateKey . knownWallet <$> [3 .. 7]
+  callEndpoint @"SetSignatures" h $ SetSignaturesParams mmsID (walletsToKeys $ knownWallet <$> [3 .. 7]) (walletPubKey . knownWallet <$> [3 .. 7])
   void $ waitNSlots 2

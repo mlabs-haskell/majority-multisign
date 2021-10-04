@@ -16,6 +16,7 @@ module MajorityMultiSign.Schema (
 
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
+import Ledger.Crypto (PubKey)
 import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Endpoint, type (.\/))
 import Plutus.V1.Ledger.Api (PubKeyHash)
@@ -65,6 +66,7 @@ PlutusTx.unstableMakeIsData ''MajorityMultiSignRedeemer
 data SetSignaturesParams = SetSignaturesParams
   { mmsIdentifier :: MajorityMultiSignIdentifier
   , newKeys :: [PubKeyHash]
+  , pubKeys :: [PubKey]
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON)

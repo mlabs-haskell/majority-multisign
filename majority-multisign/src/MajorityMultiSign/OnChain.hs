@@ -8,6 +8,7 @@ module MajorityMultiSign.OnChain (
   validatorAddress,
   validatorFromIdentifier,
   validatorHash,
+  validatorHashFromIdentifier,
 ) where
 
 import Cardano.Prelude (rightToMaybe)
@@ -34,10 +35,10 @@ import Plutus.Contract (
   utxosAt,
  )
 import Plutus.V1.Ledger.Api (TxOut (..), TxOutRef, fromBuiltinData)
-import Plutus.V1.Ledger.Contexts (findDatumHash)
+import Plutus.V1.Ledger.Contexts (TxInfo (..), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
-import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
+import PlutusTx.Builtins (divideInteger, equalsInteger, greaterThanEqualsInteger)
 import PlutusTx.Prelude hiding (take)
 
 {-# INLINEABLE mkValidator #-}
@@ -71,8 +72,10 @@ hasNewSignatures UpdateKeysAct {..} MajorityMultiSignDatum {..} ctx = all (txSig
 {-# INLINEABLE hasCorrectToken #-}
 hasCorrectToken :: MajorityMultiSignValidatorParams -> ScriptContext -> MajorityMultiSignDatum -> Bool
 hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
-  isJust assetTxOut
-    && (assetTxOut >>= txOutDatumHash) == findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx)
+  traceIfFalse "Couldn't find asset" (isJust assetTxOut)
+    && traceIfFalse
+      "Incorrect output datum"
+      ((assetTxOut >>= txOutDatumHash) == findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx))
   where
     continuing :: [TxOut]
     continuing = Ledger.getContinuingOutputs ctx
@@ -83,12 +86,22 @@ hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
     assetTxOut :: Maybe TxOut
     assetTxOut = firstJust checkAsset continuing
 
+intToString :: Integer -> BuiltinString
+intToString x
+  | x `equalsInteger` 0 = "0"
+  | x `equalsInteger` 1 = "1"
+  | x `equalsInteger` 2 = "2"
+  | x `equalsInteger` 3 = "3"
+  | x `equalsInteger` 4 = "4"
+  | x `equalsInteger` 5 = "5"
+  | otherwise = "?"
+
 -- | Checks the validator is signed by more than half of the signers on the datum
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 isSufficientlySigned red dat@MajorityMultiSignDatum {..} ctx =
-  length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2)
-    && hasNewSignatures red dat ctx
+  traceIfFalse (intToString $ length $ txInfoSignatories $ scriptContextTxInfo ctx) (length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2))
+    && traceIfFalse "Missing signatures from new keys" (hasNewSignatures red dat ctx)
   where
     signersPresent :: [PubKeyHash]
     signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signers
@@ -113,6 +126,10 @@ validatorAddress = Ledger.scriptAddress . validator
 -- | Gets the validator from an identifier
 validatorFromIdentifier :: MajorityMultiSignIdentifier -> Scripts.Validator
 validatorFromIdentifier MajorityMultiSignIdentifier {asset} = validator $ MajorityMultiSignValidatorParams asset
+
+-- | Gets the validator hash from an identifier
+validatorHashFromIdentifier :: MajorityMultiSignIdentifier -> Scripts.ValidatorHash
+validatorHashFromIdentifier MajorityMultiSignIdentifier {asset} = validatorHash $ MajorityMultiSignValidatorParams asset
 
 -- | Finds the UTxO in a majority multisign containing the asset, and returns it, its datum and the signer list
 findUTxO :: forall (w :: Type) (s :: Row Type). MajorityMultiSignIdentifier -> Contract w s ContractError ((TxOutRef, ChainIndexTxOut), Datum, [PubKeyHash])

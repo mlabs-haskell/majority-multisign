@@ -11,7 +11,8 @@ import PlutusTx.Prelude (($))
 -- | Plutus playground API
 endpoints :: Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
 endpoints =
-  forever $ selectList
-    [ endpoint @"Initialize" initialize
-    , endpoint @"SetSignatures" setSignatures
-    ]
+  forever $
+    selectList
+      [ endpoint @"Initialize" initialize
+      , endpoint @"SetSignatures" setSignatures
+      ]
