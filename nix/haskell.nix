@@ -79,6 +79,10 @@ in pkgs.haskell-nix.cabalProject rec {
     "https://github.com/input-output-hk/cardano-ledger-specs"."${sources.cardano-ledger-specs.rev}" =
       sources.cardano-ledger-specs.sha256;
 
+    # input-output-hk/cardano-wallet
+    "https://github.com/input-output-hk/cardano-wallet"."${sources.cardano-wallet.rev}" =
+      sources.cardano-wallet.sha256;
+
     # input-output-hk/cardano-prelude
     "https://github.com/input-output-hk/cardano-prelude"."${sources.cardano-prelude.rev}" =
       sources.cardano-prelude.sha256;
