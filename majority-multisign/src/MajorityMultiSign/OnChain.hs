@@ -96,7 +96,7 @@ checkMultisigned MajorityMultiSignIdentifier {asset} ctx = any pred inputs
     inputs = txInfoInputs $ scriptContextTxInfo ctx
 
     pred :: TxInInfo -> Bool
-    pred = (>0) . flip assetClassValueOf asset . txOutValue . txInInfoResolved
+    pred = (> 0) . flip assetClassValueOf asset . txOutValue . txInInfoResolved
 
 -- | Checks the validator is signed by more than half of the signers on the datum
 {-# INLINEABLE isSufficientlySigned #-}
