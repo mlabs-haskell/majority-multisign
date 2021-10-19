@@ -89,7 +89,7 @@ hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
 
 -- | External function called by other contracts to ensure multisigs present
 {-# INLINEABLE checkMultisigned #-}
-checkMultisigned :: MajorityMultiSignValidatorParams -> ScriptContext -> Bool
+checkMultisigned :: MajorityMultiSignIdentifier -> ScriptContext -> Bool
 checkMultisigned MajorityMultiSignIdentifier {asset} ctx = any pred inputs
   where
     inputs :: [TxInInfo]
