@@ -39,7 +39,7 @@ import Plutus.V1.Ledger.Api (TxOut (..), TxOutRef, fromBuiltinData)
 import Plutus.V1.Ledger.Contexts (TxInfo (..), TxInInfo (..), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
-import PlutusTx.Builtins (divideInteger, equalsInteger, greaterThanEqualsInteger)
+import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
 import PlutusTx.Prelude hiding (take)
 
 {-# INLINEABLE mkValidator #-}
@@ -90,13 +90,13 @@ hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
 -- | External function called by other contracts to ensure multisigs present
 {-# INLINEABLE checkMultisigned #-}
 checkMultisigned :: MajorityMultiSignIdentifier -> ScriptContext -> Bool
-checkMultisigned MajorityMultiSignIdentifier {asset} ctx = any pred inputs
+checkMultisigned MajorityMultiSignIdentifier {asset} ctx = any containsAsset inputs
   where
     inputs :: [TxInInfo]
     inputs = txInfoInputs $ scriptContextTxInfo ctx
 
-    pred :: TxInInfo -> Bool
-    pred = (> 0) . flip assetClassValueOf asset . txOutValue . txInInfoResolved
+    containsAsset :: TxInInfo -> Bool
+    containsAsset = (> 0) . flip assetClassValueOf asset . txOutValue . txInInfoResolved
 
 -- | Checks the validator is signed by more than half of the signers on the datum
 {-# INLINEABLE isSufficientlySigned #-}
