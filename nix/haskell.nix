@@ -83,6 +83,10 @@ in pkgs.haskell-nix.cabalProject rec {
     "https://github.com/input-output-hk/cardano-prelude"."${sources.cardano-prelude.rev}" =
       sources.cardano-prelude.sha256;
 
+    # input-output-hk/cardano-addresses
+    "https://github.com/input-output-hk/cardano-addresses"."${sources.cardano-addresses.rev}" =
+      sources.cardano-addresses.sha256;
+
     # input-output-hk/goblins
     "https://github.com/input-output-hk/goblins"."${sources.goblins.rev}" =
       sources.goblins.sha256;
