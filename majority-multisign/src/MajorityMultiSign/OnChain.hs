@@ -36,7 +36,7 @@ import Plutus.Contract (
   utxosAt,
  )
 import Plutus.V1.Ledger.Api (TxOut (..), TxOutRef, fromBuiltinData)
-import Plutus.V1.Ledger.Contexts (TxInfo (..), TxInInfo (..), findDatumHash)
+import Plutus.V1.Ledger.Contexts (TxInInfo (..), TxInfo (..), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
 import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
