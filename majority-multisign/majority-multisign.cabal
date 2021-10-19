@@ -84,8 +84,7 @@ test-suite majority-multisign-test
   import:         lang
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
-  other-modules:  Spec.ContractExtra
-                  Spec.SetSignature
+  other-modules: 
   build-depends:
     , majority-multisign
     , plutus-contract

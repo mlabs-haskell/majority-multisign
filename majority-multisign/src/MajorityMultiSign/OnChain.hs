@@ -86,21 +86,11 @@ hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
     assetTxOut :: Maybe TxOut
     assetTxOut = firstJust checkAsset continuing
 
-intToString :: Integer -> BuiltinString
-intToString x
-  | x `equalsInteger` 0 = "0"
-  | x `equalsInteger` 1 = "1"
-  | x `equalsInteger` 2 = "2"
-  | x `equalsInteger` 3 = "3"
-  | x `equalsInteger` 4 = "4"
-  | x `equalsInteger` 5 = "5"
-  | otherwise = "?"
-
 -- | Checks the validator is signed by more than half of the signers on the datum
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 isSufficientlySigned red dat@MajorityMultiSignDatum {..} ctx =
-  traceIfFalse (intToString $ length $ txInfoSignatories $ scriptContextTxInfo ctx) (length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2))
+  traceIfFalse "Not enough signatures" (length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2))
     && traceIfFalse "Missing signatures from new keys" (hasNewSignatures red dat ctx)
   where
     signersPresent :: [PubKeyHash]
