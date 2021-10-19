@@ -215,6 +215,18 @@
         "url": "https://github.com/input-output-hk/plutus/archive/58c093a49eb7a369865e361179d649264fc817a4.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "plutus-extra": {
+        "branch": "master",
+        "description": "Helper libraries for Plutus.",
+        "homepage": "",
+        "owner": "Liqwid-Labs",
+        "repo": "plutus-extra",
+        "rev": "ab459174d354168d021fab77d0e036396eea5765",
+        "sha256": "14dyp78351iqml61826y0y2jpnk8pv9s4ci4x6l1s2g9bmbm82r3",
+        "type": "tarball",
+        "url": "https://github.com/Liqwid-Labs/plutus-extra/archive/ab459174d354168d021fab77d0e036396eea5765.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "purescript-bridge": {
         "branch": "master",
         "description": "Create PureScript datatypes from Haskell datatypes",
