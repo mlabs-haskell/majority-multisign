@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 -- record-dot-preprocessor creates code that violates this warning, disable for this file
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
+{-# OPTIONS_GHC -fno-specialise #-}
 
 module MajorityMultiSign.Schema (
   MajorityMultiSign,

@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module MajorityMultiSign.Contracts (initialize, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
+module MajorityMultiSign.Contracts (initialize, multiSignTokenName, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
 
 import Cardano.Prelude (div, foldMap, subsequences, (<>))
 import Control.Monad (void)

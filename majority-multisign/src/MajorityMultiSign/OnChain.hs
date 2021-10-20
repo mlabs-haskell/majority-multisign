@@ -1,10 +1,12 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-specialise #-}
 
 module MajorityMultiSign.OnChain (
   checkMultisigned,
   findUTxO,
+  mkValidator,
   validator,
   validatorAddress,
   validatorFromIdentifier,
@@ -53,6 +55,7 @@ mkValidator params dat red ctx =
   hasCorrectToken params ctx (getExpectedDatum red dat)
     && isSufficientlySigned red dat ctx
 
+{-# INLINEABLE removeSigners #-}
 removeSigners :: [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
 removeSigners [] _ = []
 removeSigners xs [] = xs -- Not strictly needed, but more efficient
@@ -64,6 +67,7 @@ getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> Major
 getExpectedDatum UseSignaturesAct datum = datum
 getExpectedDatum UpdateKeysAct {..} datum = datum {signers = keys}
 
+{-# INLINEABLE hasNewSignatures #-}
 -- | Checks if, when setting new signatures, all new keys have signed the transaction
 hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 hasNewSignatures UseSignaturesAct _ _ = True
