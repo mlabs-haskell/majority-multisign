@@ -60,6 +60,7 @@ data MajorityMultiSignRedeemer
   | UpdateKeysAct
       { keys :: [PubKeyHash]
       }
+  deriving stock (Eq, Show)
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignRedeemer
 
