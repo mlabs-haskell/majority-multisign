@@ -68,6 +68,7 @@ getExpectedDatum UseSignaturesAct datum = datum
 getExpectedDatum UpdateKeysAct {..} datum = datum {signers = keys}
 
 {-# INLINEABLE hasNewSignatures #-}
+
 -- | Checks if, when setting new signatures, all new keys have signed the transaction
 hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 hasNewSignatures UseSignaturesAct _ _ = True

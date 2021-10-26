@@ -16,7 +16,7 @@ import Plutus.V1.Ledger.Api (fromBytes)
 import Plutus.V1.Ledger.Scripts (mkValidatorScript)
 import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
-import Test.QuickCheck (Arbitrary (arbitrary, shrink), oneof, shrinkList, sublistOf)
+import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.Plutus.Context (
   ContextBuilder,
@@ -29,8 +29,20 @@ import Test.Tasty.Plutus.Context (
   signedWith,
  )
 import Test.Tasty.Plutus.Script.Property (scriptProperty)
-import Test.Tasty.Plutus.Script.Unit (TestData (SpendingTest), WithScript, shouldValidate, shouldn'tValidate, toTestValidator, withValidator)
-import Test.Tasty.Plutus.TestData (Example (Bad, Good), fromArbitrarySpending, static)
+import Test.Tasty.Plutus.Script.Unit (
+  TestData (SpendingTest),
+  WithScript,
+  shouldValidate,
+  shouldn'tValidate,
+  toTestValidator,
+  withValidator,
+ )
+import Test.Tasty.Plutus.TestData (
+  Example (Bad, Good),
+  Generator (GenForSpending),
+  Methodology (Methodology),
+  static,
+ )
 import Prelude
 
 main :: IO ()
@@ -45,56 +57,99 @@ tests =
           testFullUse "by zero signatories" []
           testFullUse "by a single signatory" ["4615"]
           testFullUse "by three signatories" ["4615", "0000", "d00d"]
-          testPartialUse "by two outa three signatories" True ["4615", "d00d"] ["4615", "0000", "d00d"]
-          testPartialUse "by one outa three signatories" False ["d00d"] ["4615", "0000", "d00d"]
+          testPartialUse
+            "by two outa three signatories"
+            True
+            ["4615", "d00d"]
+            ["4615", "0000", "d00d"]
+          testPartialUse
+            "by one outa three signatories"
+            False
+            ["d00d"]
+            ["4615", "0000", "d00d"]
           testPartialUse "by a single missing signatory" False [] ["4615"]
+          testPartialUse
+            "by a repeating signatory"
+            True
+            ["4615"]
+            ["4615", "4615", "4615"]
+          testPartialUse
+            "by a repeating minority signatory"
+            False
+            ["4615", "4615", "4615"]
+            ["4615", "0000", "d00d"]
     , test "update" $
         do
           testUpdate "add a lone signatory" True ["4615"] ["4615"] []
-          testUpdate "add another signatory" True ["4615", "0000"] ["4615", "0000"] ["4615"]
-          testUpdate "add an absent signatory" False ["4615"] ["4615", "0000"] ["4615"]
-          testUpdate "drop one of two signatories" True ["4615"] ["4615"] ["4615", "0000"]
+          testUpdate
+            "add another signatory"
+            True
+            ["4615", "0000"]
+            ["4615", "0000"]
+            ["4615"]
+          testUpdate
+            "add an absent signatory"
+            False
+            ["4615"]
+            ["4615", "0000"]
+            ["4615"]
+          testUpdate
+            "drop one of two signatories"
+            True
+            ["4615"]
+            ["4615"]
+            ["4615", "0000"]
           testUpdate "drop the last signatory" False [] [] ["4615"]
-          testUpdate "voluntarily drop the last signatory" True ["4615"] [] ["4615"]
-          testUpdate "drop one of three signatories" True ["4615", "d00d"] ["4615", "d00d"] ["4615", "d00d", "0000"]
-          testUpdate "drop two of three signatories, one voluntarily" True ["4615", "d00d"] ["4615"] ["4615", "d00d", "0000"]
-          testUpdate "drop two of three signatories, neither voluntarily" False ["4615"] ["4615"] ["4615", "d00d", "0000"]
-          testUpdate "replace one of two signatories" True ["4615", "d00d"] ["4615", "d00d"] ["4615", "0000"]
+          testUpdate
+            "voluntarily drop the last signatory"
+            True
+            ["4615"]
+            []
+            ["4615"]
+          testUpdate
+            "drop one of three signatories"
+            True
+            ["4615", "d00d"]
+            ["4615", "d00d"]
+            ["4615", "d00d", "0000"]
+          testUpdate
+            "drop two of three signatories, one voluntarily"
+            True
+            ["4615", "d00d"]
+            ["4615"]
+            ["4615", "d00d", "0000"]
+          testUpdate
+            "drop two of three signatories, neither voluntarily"
+            False
+            ["4615"]
+            ["4615"]
+            ["4615", "d00d", "0000"]
+          testUpdate
+            "replace one of two signatories"
+            True
+            ["4615", "d00d"]
+            ["4615", "d00d"]
+            ["4615", "0000"]
     , test "property" $
-        let grade :: Schema.MajorityMultiSignDatum -> Schema.MajorityMultiSignRedeemer -> Value -> Example
-            grade Schema.MajorityMultiSignDatum {signers} _redeemer _value
-              | length (transactionSignatories `intersection` signers)
-                  < ceiling (length signers % 2) =
-                Bad
-            grade _datum Schema.UseSignaturesAct {} _value = Good
-            grade
-              Schema.MajorityMultiSignDatum {signers}
-              Schema.UpdateKeysAct {keys}
-              _value
-                | let newKeys = keys \\ signers
-                  , newKeys `subset` transactionSignatories =
-                  Good
-                | otherwise = Bad
-            mkContext :: TestData 'ForSpending -> ContextBuilder 'ForSpending
-            mkContext (SpendingTest datum redeemer val) =
-              foldr signedAnd id transactionSignatories $
-                input (oneshotInput datum) <> extraContext
-              where
-                signedAnd sig rest = (signedWith sig <>) . rest
-                extraContext = case PlutusTx.fromData (PlutusTx.toData redeemer) of
-                  Just Schema.UseSignaturesAct -> paysSelf val datum
-                  Just Schema.UpdateKeysAct {keys}
-                    | let newDatum = Schema.MajorityMultiSignDatum keys ->
-                      paysSelf val newDatum <> addDatum newDatum
-                  Nothing -> error "Unexpected redeemer type"
-         in scriptProperty
-              "matches expectations"
-              (fromArbitrarySpending grade $ static oneshotValue)
-              mkContext
+        do
+          testProperty
+            "non-repeating PubKeyHashes"
+            possibleNewSignatories
+            possibleDatumSignatories
+          testProperty
+            "repeating PubKeyHashes in datum"
+            possibleNewSignatories
+            (cycled50 possibleDatumSignatories)
+          testProperty
+            "repeating PubKeyHashes in redeemer"
+            (cycled50 possibleNewSignatories)
+            possibleDatumSignatories
+          testProperty
+            "repeating PubKeyHashes in both"
+            (cycled50 possibleNewSignatories)
+            (cycled50 possibleDatumSignatories)
     ]
   where
-    intersection xs = nub . sort . filter (`elem` xs)
-    subset xs ys = all (`elem` ys) xs
     test desc =
       withValidator
         desc
@@ -104,20 +159,29 @@ tests =
             )
         )
 
-instance Arbitrary Schema.MajorityMultiSignDatum where
-  arbitrary = Schema.MajorityMultiSignDatum <$> sublistOf possibleDatumSignatories
-  shrink Schema.MajorityMultiSignDatum{signers} =
-    Schema.MajorityMultiSignDatum <$> shrinkList (const []) signers
+arbitraryDatumFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignDatum
+arbitraryDatumFrom sigs = Schema.MajorityMultiSignDatum <$> sublistOf sigs
 
-instance Arbitrary Schema.MajorityMultiSignRedeemer where
-  arbitrary =
-    oneof
-      [ pure Schema.UseSignaturesAct
-      , Schema.UpdateKeysAct <$> sublistOf possibleNewSignatories
-      ]
-  shrink Schema.UseSignaturesAct = []
-  shrink Schema.UpdateKeysAct {keys} =
-    Schema.UpdateKeysAct <$> shrinkList (const []) keys
+shrinkDatum :: Schema.MajorityMultiSignDatum -> [Schema.MajorityMultiSignDatum]
+shrinkDatum Schema.MajorityMultiSignDatum {signers} =
+  Schema.MajorityMultiSignDatum <$> shrinkList (const []) signers
+
+arbitraryRedeemerFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignRedeemer
+arbitraryRedeemerFrom sigs =
+  oneof
+    [ pure Schema.UseSignaturesAct
+    , Schema.UpdateKeysAct <$> sublistOf sigs
+    ]
+
+shrinkRedeemer ::
+  Schema.MajorityMultiSignRedeemer ->
+  [Schema.MajorityMultiSignRedeemer]
+shrinkRedeemer Schema.UseSignaturesAct = []
+shrinkRedeemer Schema.UpdateKeysAct {keys} =
+  Schema.UpdateKeysAct <$> shrinkList (const []) keys
+
+cycled50 :: [a] -> [a]
+cycled50 = take 50 . cycle
 
 transactionSignatories :: [PubKeyHash]
 transactionSignatories = byteHash <$> [0 .. 20]
@@ -132,9 +196,15 @@ byteHash :: Word8 -> PubKeyHash
 byteHash = pubKeyHash . PubKey . fromBytes . ByteString.singleton
 
 testFullUse :: String -> [PubKeyHash] -> WithScript 'ForSpending ()
-testFullUse description signatories = testPartialUse description True signatories signatories
+testFullUse description signatories =
+  testPartialUse description True signatories signatories
 
-testPartialUse :: String -> Bool -> [PubKeyHash] -> [PubKeyHash] -> WithScript 'ForSpending ()
+testPartialUse ::
+  String ->
+  Bool ->
+  [PubKeyHash] ->
+  [PubKeyHash] ->
+  WithScript 'ForSpending ()
 testPartialUse description positive currentSignatories knownSignatories =
   (if positive then shouldValidate else shouldn'tValidate)
     description
@@ -148,7 +218,13 @@ testPartialUse description positive currentSignatories knownSignatories =
   where
     datum = Schema.MajorityMultiSignDatum knownSignatories
 
-testUpdate :: String -> Bool -> [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash] -> WithScript 'ForSpending ()
+testUpdate ::
+  String ->
+  Bool ->
+  [PubKeyHash] ->
+  [PubKeyHash] ->
+  [PubKeyHash] ->
+  WithScript 'ForSpending ()
 testUpdate description positive currentSignatories newSignatories knownSignatories =
   (if positive then shouldValidate else shouldn'tValidate)
     description
@@ -165,6 +241,51 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
   where
     oldDatum = Schema.MajorityMultiSignDatum knownSignatories
     newDatum = Schema.MajorityMultiSignDatum newSignatories
+
+testProperty :: String -> [PubKeyHash] -> [PubKeyHash] -> WithScript 'ForSpending ()
+testProperty desc newSignatories knownSignatories =
+  scriptProperty
+    desc
+    ( GenForSpending
+        grade
+        (Methodology (arbitraryDatumFrom knownSignatories) shrinkDatum)
+        (Methodology (arbitraryRedeemerFrom newSignatories) shrinkRedeemer)
+        $ static oneshotValue
+    )
+    mkContext
+  where
+    grade ::
+      Schema.MajorityMultiSignDatum ->
+      Schema.MajorityMultiSignRedeemer ->
+      Value ->
+      Example
+    grade Schema.MajorityMultiSignDatum {signers} _redeemer _value
+      | length (transactionSignatories `intersection` signers)
+          < ceiling (length (nub $ sort signers) % 2) =
+        Bad
+    grade _datum Schema.UseSignaturesAct {} _value = Good
+    grade
+      Schema.MajorityMultiSignDatum {signers}
+      Schema.UpdateKeysAct {keys}
+      _value
+        | let newKeys = keys \\ signers
+          , newKeys `subset` transactionSignatories =
+          Good
+        | otherwise = Bad
+    mkContext :: TestData 'ForSpending -> ContextBuilder 'ForSpending
+    mkContext (SpendingTest datum redeemer val) =
+      foldr signedAnd id transactionSignatories $
+        input (oneshotInput datum) <> extraContext
+      where
+        signedAnd sig rest = (signedWith sig <>) . rest
+        extraContext = case PlutusTx.fromData (PlutusTx.toData redeemer) of
+          Just Schema.UseSignaturesAct -> paysSelf val datum
+          Just Schema.UpdateKeysAct {keys}
+            | let newDatum = Schema.MajorityMultiSignDatum keys ->
+              paysSelf val newDatum <> addDatum newDatum
+          Nothing -> error "Unexpected redeemer type"
+    intersection xs = nub . sort . filter (`elem` xs)
+    subset xs ys = all (`elem` ys) xs
 
 {-# INLINEABLE initialParams #-}
 initialParams :: Schema.MajorityMultiSignValidatorParams
