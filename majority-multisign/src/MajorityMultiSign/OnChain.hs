@@ -67,9 +67,8 @@ getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> Major
 getExpectedDatum UseSignaturesAct datum = datum
 getExpectedDatum UpdateKeysAct {..} datum = datum {signers = keys}
 
-{-# INLINEABLE hasNewSignatures #-}
-
 -- | Checks if, when setting new signatures, all new keys have signed the transaction
+{-# INLINEABLE hasNewSignatures #-}
 hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 hasNewSignatures UseSignaturesAct _ _ = True
 hasNewSignatures UpdateKeysAct {..} MajorityMultiSignDatum {..} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
@@ -107,11 +106,12 @@ checkMultisigned MajorityMultiSignIdentifier {asset} ctx = any containsAsset inp
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 isSufficientlySigned red dat@MajorityMultiSignDatum {..} ctx =
-  traceIfFalse "Not enough signatures" (length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2))
+  traceIfFalse "Not enough signatures" (length signersPresent `greaterThanEqualsInteger` ((length signersUnique + 1) `divideInteger` 2))
     && traceIfFalse "Missing signatures from new keys" (hasNewSignatures red dat ctx)
   where
-    signersPresent :: [PubKeyHash]
-    signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signers
+    signersPresent, signersUnique :: [PubKeyHash]
+    signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signersUnique
+    signersUnique = nub signers
 
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =

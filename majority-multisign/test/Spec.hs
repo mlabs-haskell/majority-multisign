@@ -164,15 +164,15 @@ tests =
             possibleNewSignatories
             (cycled100 possibleDatumSignatories)
           testProperty
-            "up to 100 potentially repeating PubKeyHashes in datum and redeemer with few transaction signatories"
-            (take 10 transactionSignatories)
+            "up to 100 potentially repeating PubKeyHashes in datum and redeemer"
+            transactionSignatories
             (cycled100 possibleNewSignatories)
             (cycled100 possibleDatumSignatories)
           testProperty
-            "many repeats of a single PubKeyHash in datum"
-            (take 6 transactionSignatories)
-            possibleNewSignatories
-            (replicate 20 (head possibleDatumSignatories) ++ possibleDatumSignatories)
+            "up to 100 potentially repeating PubKeyHashes in datum, redeemer, and transaction signatures"
+            (cycled100 transactionSignatories)
+            (cycled100 possibleNewSignatories)
+            (cycled100 possibleDatumSignatories)
     ]
   where
     test desc =
@@ -209,7 +209,7 @@ cycled50 :: [a] -> [a]
 cycled50 = take 50 . cycle
 
 cycled100 :: [a] -> [a]
-cycled100 = take 50 . cycle
+cycled100 = take 100 . cycle
 
 transactionSignatories :: [PubKeyHash]
 transactionSignatories = byteHash <$> [0 .. 20]
@@ -335,7 +335,7 @@ testProperty desc currentSignatories newSignatories knownSignatories =
             | let newDatum = Schema.MajorityMultiSignDatum keys ->
               paysSelf val newDatum
           Nothing -> error "Unexpected redeemer type"
-    intersection xs = nub . sort . filter (`elem` xs)
+    intersection xs = nub . filter (`elem` xs)
     subset xs ys = all (`elem` ys) xs
 
 {-# INLINEABLE initialParams #-}
