@@ -6,7 +6,9 @@ module Main (main) where
 
 import Data.ByteString qualified as ByteString
 import Data.List (nub, sort, (\\))
+import Data.List.NonEmpty (NonEmpty ((:|)), toList)
 import Data.Ratio ((%))
+import Data.Semigroup (sconcat)
 import Data.Word (Word8)
 import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
 import MajorityMultiSign.Contracts (multiSignTokenName)
@@ -23,8 +25,6 @@ import Test.Tasty.Plutus.Context (
   ExternalType (ScriptType),
   Input (Input),
   Purpose (ForSpending),
-  addDatum,
-  input,
   paysSelf,
   signedWith,
  )
@@ -69,12 +69,12 @@ tests =
             ["4615", "0000", "d00d"]
           testPartialUse "by a single missing signatory" False [] ["4615"]
           testPartialUse
-            "by a repeating signatory"
-            True
+            "by a single repeated minority signatory"
+            False
             ["4615"]
-            ["4615", "4615", "4615"]
+            ["4615", "4615", "4615", "0000", "d00d"]
           testPartialUse
-            "by a repeating minority signatory"
+            "by a single repeated transaction signatory"
             False
             ["4615", "4615", "4615"]
             ["4615", "0000", "d00d"]
@@ -130,24 +130,49 @@ tests =
             ["4615", "d00d"]
             ["4615", "d00d"]
             ["4615", "0000"]
+    , test "bad context" $
+        do
+          testMissingOutputUse
+            "use with a missing transaction output and a single signatory"
+            ("4615" :| [])
+          testMissingOutputUse
+            "use with a missing transaction output and three signatories"
+            ("4615" :| ["0000", "d00d"])
+          testMissingOutputUpdate
+            "update with a missing transaction output and a single signatory"
+            ("4615" :| [])
+            ["4615", "d00d"]
+          testMissingOutputUpdate
+            "update with a missing transaction output and three signatories"
+            ("4615" :| ["0000", "d00d"])
+            ["4615", "d00d"]
     , test "property" $
         do
           testProperty
             "non-repeating PubKeyHashes"
+            transactionSignatories
             possibleNewSignatories
             possibleDatumSignatories
           testProperty
-            "repeating PubKeyHashes in datum"
+            "up to 50 potentially repeating PubKeyHashes in datum and redeemer"
+            transactionSignatories
+            (cycled50 possibleNewSignatories)
+            (cycled50 possibleDatumSignatories)
+          testProperty
+            "up to 100 potentially repeating PubKeyHashes in datum"
+            transactionSignatories
             possibleNewSignatories
-            (cycled50 possibleDatumSignatories)
+            (cycled100 possibleDatumSignatories)
           testProperty
-            "repeating PubKeyHashes in redeemer"
-            (cycled50 possibleNewSignatories)
-            possibleDatumSignatories
+            "up to 100 potentially repeating PubKeyHashes in datum and redeemer with few transaction signatories"
+            (take 10 transactionSignatories)
+            (cycled100 possibleNewSignatories)
+            (cycled100 possibleDatumSignatories)
           testProperty
-            "repeating PubKeyHashes in both"
-            (cycled50 possibleNewSignatories)
-            (cycled50 possibleDatumSignatories)
+            "many repeats of a single PubKeyHash in datum"
+            (take 6 transactionSignatories)
+            possibleNewSignatories
+            (replicate 20 (head possibleDatumSignatories) ++ possibleDatumSignatories)
     ]
   where
     test desc =
@@ -183,6 +208,9 @@ shrinkRedeemer Schema.UpdateKeysAct {keys} =
 cycled50 :: [a] -> [a]
 cycled50 = take 50 . cycle
 
+cycled100 :: [a] -> [a]
+cycled100 = take 50 . cycle
+
 transactionSignatories :: [PubKeyHash]
 transactionSignatories = byteHash <$> [0 .. 20]
 
@@ -213,7 +241,7 @@ testPartialUse description positive currentSignatories knownSignatories =
         id
         (<>)
         (foldMap (Just . signedWith) currentSignatories)
-        (input (oneshotInput datum) <> paysSelf oneshotValue datum)
+        (paysSelf oneshotValue datum)
     )
   where
     datum = Schema.MajorityMultiSignDatum knownSignatories
@@ -233,17 +261,41 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
         id
         (<>)
         (foldMap (Just . signedWith) currentSignatories)
-        ( input (oneshotInput oldDatum)
-            <> paysSelf oneshotValue newDatum
-            <> addDatum newDatum
-        )
+        (paysSelf oneshotValue newDatum)
     )
   where
     oldDatum = Schema.MajorityMultiSignDatum knownSignatories
     newDatum = Schema.MajorityMultiSignDatum newSignatories
 
-testProperty :: String -> [PubKeyHash] -> [PubKeyHash] -> WithScript 'ForSpending ()
-testProperty desc newSignatories knownSignatories =
+testMissingOutputUse :: String -> NonEmpty PubKeyHash -> WithScript 'ForSpending ()
+testMissingOutputUse description signatories =
+  shouldn'tValidate
+    description
+    (SpendingTest datum Schema.UseSignaturesAct mempty)
+    (sconcat $ signedWith <$> signatories)
+  where
+    datum = Schema.MajorityMultiSignDatum (toList signatories)
+
+testMissingOutputUpdate ::
+  String ->
+  NonEmpty PubKeyHash ->
+  [PubKeyHash] ->
+  WithScript 'ForSpending ()
+testMissingOutputUpdate description signatories newSignatories =
+  shouldn'tValidate
+    description
+    (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
+    (sconcat $ signedWith <$> signatories)
+  where
+    oldDatum = Schema.MajorityMultiSignDatum (toList signatories)
+
+testProperty ::
+  String ->
+  [PubKeyHash] ->
+  [PubKeyHash] ->
+  [PubKeyHash] ->
+  WithScript 'ForSpending ()
+testProperty desc currentSignatories newSignatories knownSignatories =
   scriptProperty
     desc
     ( GenForSpending
@@ -260,7 +312,7 @@ testProperty desc newSignatories knownSignatories =
       Value ->
       Example
     grade Schema.MajorityMultiSignDatum {signers} _redeemer _value
-      | length (transactionSignatories `intersection` signers)
+      | length (currentSignatories `intersection` signers)
           < ceiling (length (nub $ sort signers) % 2) =
         Bad
     grade _datum Schema.UseSignaturesAct {} _value = Good
@@ -269,20 +321,19 @@ testProperty desc newSignatories knownSignatories =
       Schema.UpdateKeysAct {keys}
       _value
         | let newKeys = keys \\ signers
-          , newKeys `subset` transactionSignatories =
+          , newKeys `subset` currentSignatories =
           Good
         | otherwise = Bad
     mkContext :: TestData 'ForSpending -> ContextBuilder 'ForSpending
     mkContext (SpendingTest datum redeemer val) =
-      foldr signedAnd id transactionSignatories $
-        input (oneshotInput datum) <> extraContext
+      foldr signedAnd id currentSignatories extraContext
       where
         signedAnd sig rest = (signedWith sig <>) . rest
         extraContext = case PlutusTx.fromData (PlutusTx.toData redeemer) of
           Just Schema.UseSignaturesAct -> paysSelf val datum
           Just Schema.UpdateKeysAct {keys}
             | let newDatum = Schema.MajorityMultiSignDatum keys ->
-              paysSelf val newDatum <> addDatum newDatum
+              paysSelf val newDatum
           Nothing -> error "Unexpected redeemer type"
     intersection xs = nub . sort . filter (`elem` xs)
     subset xs ys = all (`elem` ys) xs
