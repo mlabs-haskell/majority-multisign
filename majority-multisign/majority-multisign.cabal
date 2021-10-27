@@ -95,7 +95,7 @@ test-suite majority-multisign-test
     , plutus-tx-plugin
     , QuickCheck          ^>=2.14.2
     , tasty               ^>=1.4.1
-    , tasty-plutus        == 3.2.*
+    , tasty-plutus        >= 3.2 && < 3.4
     , tasty-quickcheck    ^>=0.10.1.2
     -- Temporary modules for ContractExtra
     , foldl
