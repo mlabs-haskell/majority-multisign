@@ -5,7 +5,7 @@
 module Main (main) where
 
 import Data.ByteString qualified as ByteString
-import Data.List (nub, sort, (\\))
+import Data.List (nub, (\\))
 import Data.List.NonEmpty (NonEmpty ((:|)), toList)
 import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
@@ -237,12 +237,7 @@ testPartialUse description positive currentSignatories knownSignatories =
   (if positive then shouldValidate else shouldn'tValidate)
     description
     (SpendingTest datum Schema.UseSignaturesAct mempty)
-    ( maybe
-        id
-        (<>)
-        (foldMap (Just . signedWith) currentSignatories)
-        (paysSelf oneshotValue datum)
-    )
+    (signedWithAll currentSignatories $ paysSelf oneshotValue datum)
   where
     datum = Schema.MajorityMultiSignDatum knownSignatories
 
@@ -257,12 +252,7 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
   (if positive then shouldValidate else shouldn'tValidate)
     description
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
-    ( maybe
-        id
-        (<>)
-        (foldMap (Just . signedWith) currentSignatories)
-        (paysSelf oneshotValue newDatum)
-    )
+    (signedWithAll currentSignatories $ paysSelf oneshotValue newDatum)
   where
     oldDatum = Schema.MajorityMultiSignDatum knownSignatories
     newDatum = Schema.MajorityMultiSignDatum newSignatories
@@ -313,7 +303,7 @@ testProperty desc currentSignatories newSignatories knownSignatories =
       Example
     grade Schema.MajorityMultiSignDatum {signers} _redeemer _value
       | length (currentSignatories `intersection` signers)
-          < ceiling (length (nub $ sort signers) % 2) =
+          < ceiling (length (nub signers) % 2) =
         Bad
     grade _datum Schema.UseSignaturesAct {} _value = Good
     grade
@@ -326,10 +316,8 @@ testProperty desc currentSignatories newSignatories knownSignatories =
         | otherwise = Bad
     mkContext :: TestData 'ForSpending -> ContextBuilder 'ForSpending
     mkContext (SpendingTest datum redeemer val) =
-      foldr signedAnd id currentSignatories extraContext
-      where
-        signedAnd sig rest = (signedWith sig <>) . rest
-        extraContext = case PlutusTx.fromData (PlutusTx.toData redeemer) of
+      signedWithAll currentSignatories $
+        case PlutusTx.fromData (PlutusTx.toData redeemer) of
           Just Schema.UseSignaturesAct -> paysSelf val datum
           Just Schema.UpdateKeysAct {keys}
             | let newDatum = Schema.MajorityMultiSignDatum keys ->
@@ -337,6 +325,14 @@ testProperty desc currentSignatories newSignatories knownSignatories =
           Nothing -> error "Unexpected redeemer type"
     intersection xs = nub . filter (`elem` xs)
     subset xs ys = all (`elem` ys) xs
+
+signedWithAll ::
+  [PubKeyHash] ->
+  ContextBuilder 'ForSpending ->
+  ContextBuilder 'ForSpending
+signedWithAll = foldr signedAnd id
+  where
+    signedAnd sig rest = (signedWith sig <>) . rest
 
 {-# INLINEABLE initialParams #-}
 initialParams :: Schema.MajorityMultiSignValidatorParams
