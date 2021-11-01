@@ -13,7 +13,7 @@ import Data.Semigroup.Foldable.Class (Foldable1 (..))
 import Data.Word (Word8)
 import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
 import MajorityMultiSign.Contracts (multiSignTokenName)
-import MajorityMultiSign.OnChain (mkValidator, validatorHash)
+import MajorityMultiSign.OnChain (mkValidator)
 import MajorityMultiSign.Schema qualified as Schema
 import Plutus.V1.Ledger.Api (fromBytes)
 import Plutus.V1.Ledger.Scripts (mkValidatorScript)
@@ -23,8 +23,6 @@ import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.Plutus.Context (
   ContextBuilder,
-  ExternalType (ScriptType),
-  Input (Input),
   Purpose (ForSpending),
   paysSelf,
   signedWith,
@@ -325,7 +323,7 @@ testProperty desc currentSignatories newSignatories knownSignatories =
         | otherwise = Bad
     mkContext :: TestData 'ForSpending -> ContextBuilder 'ForSpending
     mkContext (SpendingTest datum redeemer val) =
-      fold1 ( pays :| (signedWith <$> currentSignatories) )
+      fold1 (pays :| (signedWith <$> currentSignatories))
       where
         pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
           Just Schema.UseSignaturesAct -> paysSelf val datum
@@ -346,9 +344,3 @@ oneshotAsset = assetClass oneshotCS multiSignTokenName
 
 oneshotValue :: Value
 oneshotValue = assetClassValue oneshotAsset 1
-
-oneshotInput :: forall datum. PlutusTx.ToData datum => datum -> Input
-oneshotInput datum = Input origin oneshotValue
-  where
-    origin =
-      ScriptType (validatorHash initialParams) (PlutusTx.toBuiltinData datum)
