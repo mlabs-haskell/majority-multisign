@@ -9,6 +9,7 @@ import Data.List (nub, (\\))
 import Data.List.NonEmpty (NonEmpty ((:|)), toList)
 import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
+import Data.Semigroup.Foldable.Class (Foldable1 (..))
 import Data.Word (Word8)
 import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
 import MajorityMultiSign.Contracts (multiSignTokenName)
@@ -237,7 +238,11 @@ testPartialUse description positive currentSignatories knownSignatories =
   (if positive then shouldValidate else shouldn'tValidate)
     description
     (SpendingTest datum Schema.UseSignaturesAct mempty)
-    (signedWithAll currentSignatories $ paysSelf oneshotValue datum)
+    ( fold1
+        ( paysSelf oneshotValue datum
+            :| (signedWith <$> currentSignatories)
+        )
+    )
   where
     datum = Schema.MajorityMultiSignDatum knownSignatories
 
@@ -252,7 +257,11 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
   (if positive then shouldValidate else shouldn'tValidate)
     description
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
-    (signedWithAll currentSignatories $ paysSelf oneshotValue newDatum)
+    ( fold1
+        ( paysSelf oneshotValue newDatum
+            :| (signedWith <$> currentSignatories)
+        )
+    )
   where
     oldDatum = Schema.MajorityMultiSignDatum knownSignatories
     newDatum = Schema.MajorityMultiSignDatum newSignatories
@@ -316,23 +325,15 @@ testProperty desc currentSignatories newSignatories knownSignatories =
         | otherwise = Bad
     mkContext :: TestData 'ForSpending -> ContextBuilder 'ForSpending
     mkContext (SpendingTest datum redeemer val) =
-      signedWithAll currentSignatories $
-        case PlutusTx.fromData (PlutusTx.toData redeemer) of
+      fold1 ( pays :| (signedWith <$> currentSignatories) )
+      where
+        pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
           Just Schema.UseSignaturesAct -> paysSelf val datum
-          Just Schema.UpdateKeysAct {keys}
-            | let newDatum = Schema.MajorityMultiSignDatum keys ->
-              paysSelf val newDatum
+          Just Schema.UpdateKeysAct {keys} ->
+            paysSelf val (Schema.MajorityMultiSignDatum keys)
           Nothing -> error "Unexpected redeemer type"
     intersection xs = nub . filter (`elem` xs)
     subset xs ys = all (`elem` ys) xs
-
-signedWithAll ::
-  [PubKeyHash] ->
-  ContextBuilder 'ForSpending ->
-  ContextBuilder 'ForSpending
-signedWithAll = foldr signedAnd id
-  where
-    signedAnd sig rest = (signedWith sig <>) . rest
 
 {-# INLINEABLE initialParams #-}
 initialParams :: Schema.MajorityMultiSignValidatorParams
@@ -347,4 +348,7 @@ oneshotValue :: Value
 oneshotValue = assetClassValue oneshotAsset 1
 
 oneshotInput :: forall datum. PlutusTx.ToData datum => datum -> Input
-oneshotInput datum = Input (ScriptType (validatorHash initialParams) (PlutusTx.toBuiltinData datum)) oneshotValue
+oneshotInput datum = Input origin oneshotValue
+  where
+    origin =
+      ScriptType (validatorHash initialParams) (PlutusTx.toBuiltinData datum)
