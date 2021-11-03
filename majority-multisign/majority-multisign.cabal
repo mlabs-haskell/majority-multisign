@@ -70,6 +70,7 @@ library
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
+    , plutus-numeric
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin

@@ -1,9 +1,15 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module MajorityMultiSign.Contracts (initialize, multiSignTokenName, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
+module MajorityMultiSign.Contracts (
+  getValidSignSets,  
+  initialize,
+  multiSignTokenName,
+  setSignatures,
+  submitSignedTxConstraintsWith,
+) where
 
-import Cardano.Prelude (ceiling, foldMap, fromIntegral, subsequences, (*), (<>))
+import Cardano.Prelude (foldMap, subsequences, (<>))
 import Control.Monad (void)
 import Data.Bifunctor (bimap)
 import Data.Kind (Type)
@@ -29,7 +35,14 @@ import Ledger.Typed.Scripts (
   DatumType,
   RedeemerType,
  )
-import MajorityMultiSign.OnChain (findUTxO, validator, validatorFromIdentifier, validatorHashFromIdentifier)
+import MajorityMultiSign.OnChain (
+  ceilNatRatioToInt,
+  findUTxO,
+  intToNatRatio,
+  validator,
+  validatorFromIdentifier,
+  validatorHashFromIdentifier,
+ )
 import MajorityMultiSign.Schema (
   MajorityMultiSignDatum (..),
   MajorityMultiSignIdentifier (..),
@@ -59,7 +72,7 @@ import Plutus.V1.Ledger.Api (
  )
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx (toBuiltinData)
-import PlutusTx.Prelude hiding (foldMap, (*), (<>))
+import PlutusTx.Prelude hiding (foldMap, (<>))
 
 -- | Token name for the MajorityMultiSignDatum
 multiSignTokenName :: TokenName
@@ -96,7 +109,7 @@ initialize dat = do
 getValidSignSets :: [PubKeyHash] -> [[PubKeyHash]]
 getValidSignSets ps = filter ((== minSigCount) . length) $ subsequences ps
   where
-    minSigCount = ceiling $ fromIntegral (length ps) * signReq
+    minSigCount = ceilNatRatioToInt $ intToNatRatio (length ps) * signReq
 
 -- | Creates the constraint for signing, this scales as `getValidSignSets` does
 makeSigningConstraint ::

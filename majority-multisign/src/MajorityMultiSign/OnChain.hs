@@ -4,8 +4,10 @@
 {-# OPTIONS_GHC -fno-specialise #-}
 
 module MajorityMultiSign.OnChain (
+  ceilNatRatioToInt,
   checkMultisigned,
   findUTxO,
+  intToNatRatio,
   mkValidator,
   validator,
   validatorAddress,
@@ -30,6 +32,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignIdentifier (..),
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignValidatorParams (..),
+  signReq,
  )
 import Plutus.Contract (
   Contract,
@@ -41,8 +44,18 @@ import Plutus.V1.Ledger.Api (TxOut (..), TxOutRef, fromBuiltinData)
 import Plutus.V1.Ledger.Contexts (TxInInfo (..), TxInfo (..), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
-import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
-import PlutusTx.Prelude hiding (fromInteger, round, take, (*))
+import PlutusTx.Builtins (greaterThanEqualsInteger)
+import PlutusTx.NatRatio (NatRatio, ceiling, fromNatural)
+import PlutusTx.Natural (Natural)
+import PlutusTx.Prelude hiding (fromInteger, round, take)
+
+{-# INLINEABLE intToNatRatio #-}
+intToNatRatio :: Integer -> NatRatio
+intToNatRatio = fromNatural . toEnum @Natural
+
+{-# INLINEABLE ceilNatRatioToInt #-}
+ceilNatRatioToInt :: NatRatio -> Integer
+ceilNatRatioToInt = fromEnum . ceiling
 
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
@@ -105,13 +118,16 @@ checkMultisigned MajorityMultiSignIdentifier {asset} ctx = any containsAsset inp
 -- | Checks the validator is signed by more than half of the signers on the datum
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
-isSufficientlySigned red dat@MajorityMultiSignDatum {..} ctx =
-  traceIfFalse "Not enough signatures" (length signersPresent `greaterThanEqualsInteger` ((length signersUnique + 1) `divideInteger` 2))
+isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
+  traceIfFalse "Not enough signatures" (length signersPresent `greaterThanEqualsInteger` minSigners)
     && traceIfFalse "Missing signatures from new keys" (hasNewSignatures red dat ctx)
   where
     signersPresent, signersUnique :: [PubKeyHash]
     signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signersUnique
     signersUnique = nub signers
+    minSigners :: Integer
+    minSigners = ceilNatRatioToInt $ (intToNatRatio . length $ signersUnique) * signReq
+
 
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =

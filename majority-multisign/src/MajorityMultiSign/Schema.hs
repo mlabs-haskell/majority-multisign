@@ -17,6 +17,7 @@ module MajorityMultiSign.Schema (
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Kind (Type)
 import GHC.Generics (Generic)
 import Ledger.Crypto (PubKey)
 import Ledger.Typed.Scripts qualified as Scripts
@@ -25,13 +26,21 @@ import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Scripts (ValidatorHash)
 import Plutus.V1.Ledger.Value (AssetClass)
 import PlutusTx qualified
-import Prelude (Eq, Float, Show)
+import PlutusTx.NatRatio (NatRatio, natRatio)
+import PlutusTx.Prelude (Maybe (..), error, toEnum)
+import Prelude (Eq, Show, ($))
+
+{-# INLINEABLE fromJust #-}
+-- | Inlineable fromJust
+fromJust :: forall (a :: Type). Maybe a -> a
+fromJust Nothing = error ()
+fromJust (Just x) = x
 
 {-# INLINEABLE signReq #-}
-
 -- | Signing proportion required
-signReq :: Float
-signReq = 0.5
+-- Known to be well formed at compile time, thus the fromJust
+signReq :: NatRatio
+signReq = fromJust $ natRatio (toEnum 1) (toEnum 2)
 
 -- | Data type used to identify a majority multisign validator (the validator itself and the asset needed to call it)
 data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
