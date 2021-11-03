@@ -2,7 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module MajorityMultiSign.Contracts (
-  getValidSignSets,  
+  getValidSignSets,
   initialize,
   multiSignTokenName,
   setSignatures,

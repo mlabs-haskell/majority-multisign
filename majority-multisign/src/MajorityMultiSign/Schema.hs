@@ -31,14 +31,17 @@ import PlutusTx.Prelude (Maybe (..), error, toEnum)
 import Prelude (Eq, Show, ($))
 
 {-# INLINEABLE fromJust #-}
+
 -- | Inlineable fromJust
 fromJust :: forall (a :: Type). Maybe a -> a
 fromJust Nothing = error ()
 fromJust (Just x) = x
 
 {-# INLINEABLE signReq #-}
--- | Signing proportion required
--- Known to be well formed at compile time, thus the fromJust
+
+{- | Signing proportion required
+ Known to be well formed at compile time, thus the fromJust
+-}
 signReq :: NatRatio
 signReq = fromJust $ natRatio (toEnum 1) (toEnum 2)
 

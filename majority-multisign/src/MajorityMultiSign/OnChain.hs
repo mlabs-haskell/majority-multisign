@@ -128,7 +128,6 @@ isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
     minSigners :: Integer
     minSigners = ceilNatRatioToInt $ (intToNatRatio . length $ signersUnique) * signReq
 
-
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =
   TypedScripts.mkTypedValidator @MajorityMultiSign
