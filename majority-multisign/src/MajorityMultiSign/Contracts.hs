@@ -3,7 +3,7 @@
 
 module MajorityMultiSign.Contracts (initialize, multiSignTokenName, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
 
-import Cardano.Prelude (Eq, ceiling, foldMap, fromIntegral, subsequences, (*), (<>))
+import Cardano.Prelude (ceiling, foldMap, fromIntegral, subsequences, (*), (<>))
 import Control.Monad (void)
 import Data.Bifunctor (bimap)
 import Data.Kind (Type)
@@ -59,7 +59,7 @@ import Plutus.V1.Ledger.Api (
  )
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx (toBuiltinData)
-import PlutusTx.Prelude hiding (Eq, foldMap, (*), (<>))
+import PlutusTx.Prelude hiding (foldMap, (*), (<>))
 
 -- | Token name for the MajorityMultiSignDatum
 multiSignTokenName :: TokenName

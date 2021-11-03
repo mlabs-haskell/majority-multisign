@@ -14,7 +14,7 @@ module MajorityMultiSign.OnChain (
   validatorHashFromIdentifier,
 ) where
 
-import Cardano.Prelude (fromInteger, rightToMaybe, round, (*))
+import Cardano.Prelude (rightToMaybe)
 import Data.Kind (Type)
 import Data.List.Extra (firstJust)
 import Data.Map qualified as Map
@@ -30,7 +30,6 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignIdentifier (..),
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignValidatorParams (..),
-  signReq,
  )
 import Plutus.Contract (
   Contract,
