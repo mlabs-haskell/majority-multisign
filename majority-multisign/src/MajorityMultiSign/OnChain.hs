@@ -12,7 +12,7 @@ module MajorityMultiSign.OnChain (
   validatorHashFromIdentifier,
 ) where
 
-import Cardano.Prelude (rightToMaybe)
+import Cardano.Prelude (fromInteger, rightToMaybe, round, (*))
 import Data.Kind (Type)
 import Data.List.Extra (firstJust)
 import Data.Map qualified as Map
@@ -28,6 +28,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignIdentifier (..),
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignValidatorParams (..),
+  signReq,
  )
 import Plutus.Contract (
   Contract,
@@ -39,8 +40,8 @@ import Plutus.V1.Ledger.Api (TxOut (..), TxOutRef, fromBuiltinData)
 import Plutus.V1.Ledger.Contexts (TxInInfo (..), TxInfo (..), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
-import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
-import PlutusTx.Prelude hiding (take)
+import PlutusTx.Builtins (greaterThanEqualsInteger)
+import PlutusTx.Prelude hiding (fromInteger, round, take, (*))
 
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
@@ -62,17 +63,17 @@ removeSigners (x : xs) ys = if x `elem` ys then removeSigners xs ys else x : rem
 {-# INLINEABLE getExpectedDatum #-}
 getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> MajorityMultiSignDatum
 getExpectedDatum UseSignaturesAct datum = datum
-getExpectedDatum UpdateKeysAct {..} datum = datum {signers = keys}
+getExpectedDatum UpdateKeysAct {keys} datum = datum {signers = keys}
 
 -- | Checks if, when setting new signatures, all new keys have signed the transaction
 hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 hasNewSignatures UseSignaturesAct _ _ = True
-hasNewSignatures UpdateKeysAct {..} MajorityMultiSignDatum {..} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
+hasNewSignatures UpdateKeysAct {keys} MajorityMultiSignDatum {signers} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
 
 -- | Checks the script has the correct token (containing the asset we want), forwards it to the right place, and has the datum we expect
 {-# INLINEABLE hasCorrectToken #-}
 hasCorrectToken :: MajorityMultiSignValidatorParams -> ScriptContext -> MajorityMultiSignDatum -> Bool
-hasCorrectToken MajorityMultiSignValidatorParams {..} ctx expectedDatum =
+hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
   traceIfFalse "Couldn't find asset" (isJust assetTxOut)
     && traceIfFalse
       "Incorrect output datum"
@@ -101,12 +102,14 @@ checkMultisigned MajorityMultiSignIdentifier {asset} ctx = any containsAsset inp
 -- | Checks the validator is signed by more than half of the signers on the datum
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
-isSufficientlySigned red dat@MajorityMultiSignDatum {..} ctx =
-  traceIfFalse "Not enough signatures" (length signersPresent `greaterThanEqualsInteger` ((length signers + 1) `divideInteger` 2))
+isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
+  traceIfFalse "Not enough signatures" (length signersPresent `greaterThanEqualsInteger` expectedSigns)
     && traceIfFalse "Missing signatures from new keys" (hasNewSignatures red dat ctx)
   where
     signersPresent :: [PubKeyHash]
     signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signers
+    expectedSigns :: Integer
+    expectedSigns = round $ (fromInteger $ length signers) * signReq
 
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =
