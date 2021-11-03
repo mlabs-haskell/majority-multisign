@@ -13,6 +13,7 @@ module MajorityMultiSign.Schema (
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (..),
   SetSignaturesParams (..),
+  signReq,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -24,7 +25,12 @@ import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Scripts (ValidatorHash)
 import Plutus.V1.Ledger.Value (AssetClass)
 import PlutusTx qualified
-import Prelude (Eq, Show)
+import Prelude (Eq, Float, Show)
+
+{-# INLINEABLE signReq #-}
+-- | Signing proportion required
+signReq :: Float
+signReq = 0.5
 
 -- | Data type used to identify a majority multisign validator (the validator itself and the asset needed to call it)
 data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier

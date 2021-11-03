@@ -1,9 +1,9 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module MajorityMultiSign.Contracts (initialize, multiSignTokenName, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
 
-import Cardano.Prelude (div, foldMap, subsequences, (<>))
+import Cardano.Prelude (Eq, ceiling, foldMap, fromIntegral, subsequences, (<>), (*))
 import Control.Monad (void)
 import Data.Bifunctor (bimap)
 import Data.Kind (Type)
@@ -37,6 +37,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (..),
   SetSignaturesParams (..),
+  signReq,
  )
 import Playground.Contract (Tx)
 import Plutus.Contract (
@@ -58,7 +59,7 @@ import Plutus.V1.Ledger.Api (
  )
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx (toBuiltinData)
-import PlutusTx.Prelude hiding (foldMap, (<>))
+import PlutusTx.Prelude hiding (Eq, foldMap, (<>), (*))
 
 -- | Token name for the MajorityMultiSignDatum
 multiSignTokenName :: TokenName
@@ -93,7 +94,9 @@ initialize dat = do
  TODO: Optimise this, there is no need to generate all subsets and filter.
 -}
 getValidSignSets :: [PubKeyHash] -> [[PubKeyHash]]
-getValidSignSets ps = filter ((== (length ps + 1) `div` 2) . length) $ subsequences ps
+getValidSignSets ps = filter ((== minSigCount) . length) $ subsequences ps
+  where
+    minSigCount = ceiling $ fromIntegral (length ps) * signReq
 
 -- | Creates the constraint for signing, this scales as `getValidSignSets` does
 makeSigningConstraint ::
@@ -137,17 +140,20 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
 
   submitTxConstraintsWith @Any lookups' tx'
 
+subset :: forall (a :: Type). Eq a => [a] -> [a] -> Bool
+subset xs ys = all (`elem` ys) xs
+
 sufficientPubKeys :: [PubKey] -> [PubKeyHash] -> [[PubKeyHash]] -> Bool
-sufficientPubKeys pubKeys req opts = null (req \\ pkhs) && any (null . (\\ pkhs)) opts
+sufficientPubKeys pubKeys req opts = subset req pkhs && any (flip subset pkhs) opts
   where
     pkhs = pubKeyHash <$> pubKeys
 
--- | Sets one of the signatures in a multisign validator given enough signatures on the tx
+-- | Updates all keys in the multisign given authority
 setSignatures ::
   forall (w :: Type).
   SetSignaturesParams ->
   Contract w MajorityMultiSignSchema ContractError ()
-setSignatures SetSignaturesParams {..} = do
+setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
   (txOutData, _, signerList) <- findUTxO mmsIdentifier
 
   let keyOptions :: [[PubKeyHash]]
