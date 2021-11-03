@@ -28,6 +28,7 @@ import PlutusTx qualified
 import Prelude (Eq, Float, Show)
 
 {-# INLINEABLE signReq #-}
+
 -- | Signing proportion required
 signReq :: Float
 signReq = 0.5
