@@ -13,7 +13,7 @@ module MajorityMultiSign.Schema (
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (..),
   SetSignaturesParams (..),
-  signReq,
+  getMinSigners,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -26,9 +26,10 @@ import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Scripts (ValidatorHash)
 import Plutus.V1.Ledger.Value (AssetClass)
 import PlutusTx qualified
-import PlutusTx.NatRatio (NatRatio, natRatio)
-import PlutusTx.Prelude (Maybe (..), error, toEnum)
-import Prelude (Eq, Show, ($))
+import PlutusTx.NatRatio (NatRatio, ceiling, fromNatural, natRatio)
+import PlutusTx.Natural (Natural)
+import PlutusTx.Prelude hiding (Eq)
+import Prelude (Eq, Show)
 
 {-# INLINEABLE fromJust #-}
 
@@ -44,6 +45,20 @@ fromJust (Just x) = x
 -}
 signReq :: NatRatio
 signReq = fromJust $ natRatio (toEnum 1) (toEnum 2)
+
+{-# INLINEABLE intToNatRatio #-}
+intToNatRatio :: Integer -> NatRatio
+intToNatRatio = fromNatural . toEnum @Natural
+
+{-# INLINEABLE ceilNatRatioToInt #-}
+ceilNatRatioToInt :: NatRatio -> Integer
+ceilNatRatioToInt = fromEnum . ceiling
+
+{-# INLINEABLE getMinSigners #-}
+
+-- | Given a list of Signers, gets the minimum number of signers needed for a transaction to be valid
+getMinSigners :: [a] -> Integer
+getMinSigners = ceilNatRatioToInt . (signReq *) . intToNatRatio . length
 
 -- | Data type used to identify a majority multisign validator (the validator itself and the asset needed to call it)
 data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier

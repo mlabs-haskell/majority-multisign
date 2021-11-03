@@ -1,13 +1,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-specialise #-}
 
 module MajorityMultiSign.OnChain (
-  ceilNatRatioToInt,
   checkMultisigned,
   findUTxO,
-  intToNatRatio,
   mkValidator,
   validator,
   validatorAddress,
@@ -32,7 +29,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignIdentifier (..),
   MajorityMultiSignRedeemer (..),
   MajorityMultiSignValidatorParams (..),
-  signReq,
+  getMinSigners,
  )
 import Plutus.Contract (
   Contract,
@@ -45,17 +42,7 @@ import Plutus.V1.Ledger.Contexts (TxInInfo (..), TxInfo (..), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
 import PlutusTx.Builtins (greaterThanEqualsInteger)
-import PlutusTx.NatRatio (NatRatio, ceiling, fromNatural)
-import PlutusTx.Natural (Natural)
 import PlutusTx.Prelude hiding (fromInteger, round, take)
-
-{-# INLINEABLE intToNatRatio #-}
-intToNatRatio :: Integer -> NatRatio
-intToNatRatio = fromNatural . toEnum @Natural
-
-{-# INLINEABLE ceilNatRatioToInt #-}
-ceilNatRatioToInt :: NatRatio -> Integer
-ceilNatRatioToInt = fromEnum . ceiling
 
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
@@ -126,7 +113,7 @@ isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
     signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signersUnique
     signersUnique = nub signers
     minSigners :: Integer
-    minSigners = ceilNatRatioToInt $ (intToNatRatio . length $ signersUnique) * signReq
+    minSigners = getMinSigners signersUnique
 
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =

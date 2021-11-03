@@ -36,9 +36,7 @@ import Ledger.Typed.Scripts (
   RedeemerType,
  )
 import MajorityMultiSign.OnChain (
-  ceilNatRatioToInt,
   findUTxO,
-  intToNatRatio,
   validator,
   validatorFromIdentifier,
   validatorHashFromIdentifier,
@@ -50,7 +48,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (..),
   SetSignaturesParams (..),
-  signReq,
+  getMinSigners,
  )
 import Playground.Contract (Tx)
 import Plutus.Contract (
@@ -109,7 +107,7 @@ initialize dat = do
 getValidSignSets :: [PubKeyHash] -> [[PubKeyHash]]
 getValidSignSets ps = filter ((== minSigCount) . length) $ subsequences ps
   where
-    minSigCount = ceilNatRatioToInt $ intToNatRatio (length ps) * signReq
+    minSigCount = getMinSigners ps
 
 -- | Creates the constraint for signing, this scales as `getValidSignSets` does
 makeSigningConstraint ::
