@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 -- record-dot-preprocessor creates code that violates this warning, disable for this file
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
+{-# OPTIONS_GHC -fno-specialise #-}
 
 module MajorityMultiSign.Schema (
   MajorityMultiSign,
@@ -27,6 +28,7 @@ import PlutusTx qualified
 import Prelude (Eq, Float, Show)
 
 {-# INLINEABLE signReq #-}
+
 -- | Signing proportion required
 signReq :: Float
 signReq = 0.5
@@ -65,6 +67,7 @@ data MajorityMultiSignRedeemer
   | UpdateKeysAct
       { keys :: [PubKeyHash]
       }
+  deriving stock (Eq, Show)
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignRedeemer
 

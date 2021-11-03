@@ -1,9 +1,9 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module MajorityMultiSign.Contracts (initialize, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
+module MajorityMultiSign.Contracts (initialize, multiSignTokenName, submitSignedTxConstraintsWith, setSignatures, getValidSignSets) where
 
-import Cardano.Prelude (Eq, ceiling, foldMap, fromIntegral, subsequences, (<>), (*))
+import Cardano.Prelude (ceiling, foldMap, fromIntegral, subsequences, (*), (<>))
 import Control.Monad (void)
 import Data.Bifunctor (bimap)
 import Data.Kind (Type)
@@ -59,7 +59,7 @@ import Plutus.V1.Ledger.Api (
  )
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx (toBuiltinData)
-import PlutusTx.Prelude hiding (Eq, foldMap, (<>), (*))
+import PlutusTx.Prelude hiding (foldMap, (*), (<>))
 
 -- | Token name for the MajorityMultiSignDatum
 multiSignTokenName :: TokenName
@@ -144,7 +144,7 @@ subset :: forall (a :: Type). Eq a => [a] -> [a] -> Bool
 subset xs ys = all (`elem` ys) xs
 
 sufficientPubKeys :: [PubKey] -> [PubKeyHash] -> [[PubKeyHash]] -> Bool
-sufficientPubKeys pubKeys req opts = subset req pkhs && any (flip subset pkhs) opts
+sufficientPubKeys pubKeys req opts = subset req pkhs && any (`subset` pkhs) opts
   where
     pkhs = pubKeyHash <$> pubKeys
 

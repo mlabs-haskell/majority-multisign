@@ -118,5 +118,9 @@ in pkgs.haskell-nix.cabalProject rec {
     # input-output-hk/hedgehog-extras
     "https://github.com/input-output-hk/hedgehog-extras"."${sources.hedgehog-extras.rev}" =
       sources.hedgehog-extras.sha256;
+
+    # Liqwid-Labs/plutus-extra
+    "https://github.com/Liqwid-Labs/plutus-extra"."${sources.plutus-extra.rev}" =
+      sources.plutus-extra.sha256;
   };
 }
