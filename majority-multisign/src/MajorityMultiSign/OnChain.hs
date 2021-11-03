@@ -42,7 +42,7 @@ import Plutus.V1.Ledger.Api (TxOut (..), TxOutRef, fromBuiltinData)
 import Plutus.V1.Ledger.Contexts (TxInInfo (..), TxInfo (..), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
-import PlutusTx.Builtins (greaterThanEqualsInteger)
+import PlutusTx.Builtins (divideInteger, greaterThanEqualsInteger)
 import PlutusTx.Prelude hiding (fromInteger, round, take, (*))
 
 {-# INLINEABLE mkValidator #-}
