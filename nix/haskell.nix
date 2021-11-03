@@ -55,8 +55,8 @@ in pkgs.haskell-nix.cabalProject rec {
     "https://github.com/input-output-hk/plutus.git"."${sources.plutus.rev}" =
       sources.plutus.sha256;
 
-    # michaelpj/flat
-    "https://github.com/michaelpj/flat.git"."${sources.flat.rev}" =
+    # Quid2/flat
+    "https://github.com/Quid2/flat.git"."${sources.flat.rev}" =
       sources.flat.sha256;
 
     # shmish111/purescript-bridge
@@ -76,12 +76,20 @@ in pkgs.haskell-nix.cabalProject rec {
       sources.cardano-crypto.sha256;
 
     # input-output-hk/cardano-ledger-specs
-    "https://github.com/input-output-hk/cardano-ledger-specs"."${sources.cardano-ledger-specs.rev}" =
+    "https://github.com/raduom/cardano-ledger-specs"."${sources.cardano-ledger-specs.rev}" =
       sources.cardano-ledger-specs.sha256;
+
+    # input-output-hk/cardano-wallet
+    "https://github.com/input-output-hk/cardano-wallet"."${sources.cardano-wallet.rev}" =
+      sources.cardano-wallet.sha256;
 
     # input-output-hk/cardano-prelude
     "https://github.com/input-output-hk/cardano-prelude"."${sources.cardano-prelude.rev}" =
       sources.cardano-prelude.sha256;
+
+    # input-output-hk/cardano-addresses
+    "https://github.com/input-output-hk/cardano-addresses"."${sources.cardano-addresses.rev}" =
+      sources.cardano-addresses.sha256;
 
     # input-output-hk/goblins
     "https://github.com/input-output-hk/goblins"."${sources.goblins.rev}" =
@@ -110,5 +118,9 @@ in pkgs.haskell-nix.cabalProject rec {
     # input-output-hk/hedgehog-extras
     "https://github.com/input-output-hk/hedgehog-extras"."${sources.hedgehog-extras.rev}" =
       sources.hedgehog-extras.sha256;
+
+    # Liqwid-Labs/plutus-extra
+    "https://github.com/Liqwid-Labs/plutus-extra"."${sources.plutus-extra.rev}" =
+      sources.plutus-extra.sha256;
   };
 }

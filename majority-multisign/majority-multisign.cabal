@@ -45,9 +45,9 @@ common lang
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Werror -Wincomplete-record-updates
-    -Wmissing-deriving-strategies
-    -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
-    -fobject-code -fno-strictness -fplugin=RecordDotPreprocessor
+    -Wmissing-deriving-strategies -fno-ignore-interface-pragmas
+    -fno-omit-interface-pragmas -fobject-code -fno-strictness
+    -fplugin=RecordDotPreprocessor
 
   default-language:   Haskell2010
 
@@ -55,18 +55,29 @@ library
   import:          lang
   exposed-modules:
     MajorityMultiSign
+    MajorityMultiSign.Contracts
+    MajorityMultiSign.OnChain
+    MajorityMultiSign.Schema
 
   build-depends:
     , aeson              ^>=1.5.6.0
+    , cardano-prelude
+    , containers
+    , extra
     , freer-simple       ^>=1.2.1.1
     , lens               ^>=4.19.2
+    , playground-common
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
+    , plutus-numeric
     , plutus-pab
     , plutus-tx
+    , plutus-tx-plugin
+    , plutus-use-cases
     , prettyprinter      ^>=1.7.0
     , row-types          ^>=1.0.1.0
+    , text
 
   hs-source-dirs:  src
 
@@ -74,16 +85,26 @@ test-suite majority-multisign-test
   import:         lang
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
-  other-modules:
-
+  other-modules: 
   build-depends:
+    , bytestring
     , majority-multisign
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
     , plutus-tx
-    , QuickCheck         ^>=2.14.2
-    , tasty              ^>=1.4.1
-    , tasty-quickcheck   ^>=0.10.1.2
+    , plutus-tx-plugin
+    , semigroupoids       ^>=5.3
+    , QuickCheck          ^>=2.14.2
+    , tasty               ^>=1.4.1
+    , tasty-plutus        >= 3.2 && < 3.4
+    , tasty-quickcheck    ^>=0.10.1.2
+    -- Temporary modules for ContractExtra
+    , foldl
+    , lens
+    , freer-simple
+    , containers
+    , row-types
+    , prettyprinter
 
   hs-source-dirs: test
