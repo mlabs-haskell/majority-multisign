@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 -- record-dot-preprocessor creates code that violates this warning, disable for this file
@@ -17,7 +18,6 @@ module MajorityMultiSign.Schema (
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Kind (Type)
 import GHC.Generics (Generic)
 import Ledger.Crypto (PubKey)
 import Ledger.Typed.Scripts qualified as Scripts
@@ -26,25 +26,16 @@ import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Scripts (ValidatorHash)
 import Plutus.V1.Ledger.Value (AssetClass)
 import PlutusTx qualified
-import PlutusTx.NatRatio (NatRatio, ceiling, fromNatural, natRatio)
+import PlutusTx.NatRatio (NatRatio, ceiling, frac, fromNatural)
 import PlutusTx.Natural (Natural)
 import PlutusTx.Prelude hiding (Eq)
 import Prelude (Eq, Show)
 
-{-# INLINEABLE fromJust #-}
-
--- | Inlineable fromJust
-fromJust :: forall (a :: Type). Maybe a -> a
-fromJust Nothing = error ()
-fromJust (Just x) = x
-
 {-# INLINEABLE signReq #-}
 
-{- | Signing proportion required
- Known to be well formed at compile time, thus the fromJust
--}
+-- | Signing proportion required
 signReq :: NatRatio
-signReq = fromJust $ natRatio (toEnum 1) (toEnum 2)
+signReq = [frac| (1, 2) |] -- 0.5
 
 {-# INLINEABLE intToNatRatio #-}
 intToNatRatio :: Integer -> NatRatio
