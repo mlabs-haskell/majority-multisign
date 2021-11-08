@@ -17,7 +17,7 @@ import MajorityMultiSign.Contracts (multiSignTokenName)
 import MajorityMultiSign.OnChain (mkValidator, validator)
 import MajorityMultiSign.Schema qualified as Schema
 import Plutus.V1.Ledger.Api (fromBytes)
-import Plutus.V1.Ledger.Scripts (mkValidatorScript, Validator (getValidator))
+import Plutus.V1.Ledger.Scripts (Validator (getValidator), mkValidatorScript)
 import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
 import PlutusTx.Natural (nat)
@@ -175,10 +175,11 @@ tests =
             (cycled100 transactionSignatories)
             (cycled100 possibleNewSignatories)
             (cycled100 possibleDatumSignatories)
-    , testGroup "size"
-      [ fitsOnChain "validator" validatorScript
-      , fitsInto "validator" (kbytes [nat| 5 |]) validatorScript
-      ]
+    , testGroup
+        "size"
+        [ fitsOnChain "validator" validatorScript
+        , fitsInto "validator" (kbytes [nat| 5 |]) validatorScript
+        ]
     ]
   where
     test desc =
