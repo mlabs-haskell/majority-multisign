@@ -145,7 +145,7 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
           <> makeSigningConstraint @Any keyOptions
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
-          <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mms.asset 1)
+          <> Constraints.mustPayToOtherScript mms.address datum (assetClassValue mms.asset 1)
 
   unless (sufficientPubKeys pubKeys [] keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
 
