@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -13,12 +14,13 @@ import Data.Semigroup.Foldable.Class (Foldable1 (..))
 import Data.Word (Word8)
 import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
 import MajorityMultiSign.Contracts (multiSignTokenName)
-import MajorityMultiSign.OnChain (mkValidator)
+import MajorityMultiSign.OnChain (mkValidator, validator)
 import MajorityMultiSign.Schema qualified as Schema
 import Plutus.V1.Ledger.Api (fromBytes)
-import Plutus.V1.Ledger.Scripts (mkValidatorScript)
+import Plutus.V1.Ledger.Scripts (Validator (getValidator), mkValidatorScript)
 import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
+import PlutusTx.Natural (nat)
 import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.Plutus.Context (
@@ -28,6 +30,7 @@ import Test.Tasty.Plutus.Context (
   signedWith,
  )
 import Test.Tasty.Plutus.Script.Property (scriptProperty)
+import Test.Tasty.Plutus.Script.Size (fitsInto, fitsOnChain, kbytes)
 import Test.Tasty.Plutus.Script.Unit (
   TestData (SpendingTest),
   WithScript,
@@ -172,6 +175,11 @@ tests =
             (cycled100 transactionSignatories)
             (cycled100 possibleNewSignatories)
             (cycled100 possibleDatumSignatories)
+    , testGroup
+        "size"
+        [ fitsOnChain "validator" validatorScript
+        , fitsInto "validator" (kbytes [nat| 5 |]) validatorScript
+        ]
     ]
   where
     test desc =
@@ -182,6 +190,7 @@ tests =
                 `PlutusTx.applyCode` PlutusTx.liftCode initialParams
             )
         )
+    validatorScript = getValidator (validator initialParams)
 
 arbitraryDatumFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignDatum
 arbitraryDatumFrom sigs = Schema.MajorityMultiSignDatum <$> sublistOf sigs
