@@ -85,7 +85,7 @@ test-suite majority-multisign-test
   import:         lang
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
-  other-modules: 
+  other-modules:  Spec.Direct
   build-depends:
     , bytestring
     , majority-multisign
@@ -100,12 +100,5 @@ test-suite majority-multisign-test
     , tasty               ^>=1.4.1
     , tasty-plutus        ^>=3.4
     , tasty-quickcheck    ^>=0.10.1.2
-    -- Temporary modules for ContractExtra
-    , foldl
-    , lens
-    , freer-simple
-    , containers
-    , row-types
-    , prettyprinter
 
   hs-source-dirs: test
