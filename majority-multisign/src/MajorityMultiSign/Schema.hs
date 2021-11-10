@@ -60,6 +60,7 @@ data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
   deriving anyclass (FromJSON, ToJSON)
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignIdentifier
+PlutusTx.makeLift ''MajorityMultiSignIdentifier
 
 -- | Params to the majority multisign validator, as the asset class of the `MajorityMultiSignDatum`
 data MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
