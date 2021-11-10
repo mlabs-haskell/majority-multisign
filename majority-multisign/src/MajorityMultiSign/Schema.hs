@@ -36,14 +36,14 @@ import Plutus.V1.Ledger.Value (AssetClass, CurrencySymbol (..), TokenName (..))
 import PlutusTx qualified
 import PlutusTx.NatRatio (NatRatio, ceiling, frac, fromNatural)
 import PlutusTx.Natural (Natural)
-import PlutusTx.Prelude hiding (decodeUtf8, Eq)
-import Prelude (Eq, Show)
+import PlutusTx.Prelude hiding (Eq, decodeUtf8)
 import Schema (
   FormArgumentF (..),
   FormSchema (..),
   ToArgument (toArgument),
   ToSchema (toSchema),
  )
+import Prelude (Eq, Show)
 
 {-# INLINEABLE signReq #-}
 
@@ -77,11 +77,11 @@ PlutusTx.makeLift ''MajorityMultiSignIdentifier
 
 instance ToSchema MajorityMultiSignIdentifier where
   toSchema =
-    FormSchemaObject [ ("asset", FormSchemaMaybe (toSchema @AssetClass)) ]
+    FormSchemaObject [("asset", FormSchemaMaybe (toSchema @AssetClass))]
 
 instance ToArgument MajorityMultiSignIdentifier where
   toArgument MajorityMultiSignIdentifier {asset} =
-    Fix $ FormObjectF [ ("asset", toArgument (Just asset)) ]
+    Fix $ FormObjectF [("asset", toArgument (Just asset))]
 
 -- | Params to the majority multisign validator, as the asset class of the `MajorityMultiSignDatum`
 data MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
