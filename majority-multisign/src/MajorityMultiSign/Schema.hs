@@ -66,7 +66,7 @@ getMinSigners :: [a] -> Integer
 getMinSigners = ceilNatRatioToInt . (signReq *) . intToNatRatio . length
 
 -- | Data type used to identify a majority multisign validator (the asset needed to call it)
-data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
+newtype MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
   { asset :: AssetClass
   }
   deriving stock (Eq, Generic, Show)
@@ -84,7 +84,7 @@ instance ToArgument MajorityMultiSignIdentifier where
     Fix $ FormObjectF [("asset", toArgument (Just asset))]
 
 -- | Params to the majority multisign validator, as the asset class of the `MajorityMultiSignDatum`
-data MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
+newtype MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
   { asset :: AssetClass
   }
 
@@ -106,7 +106,7 @@ PlutusTx.makeLift ''MajorityMultiSignValidatorParams
 {- | Datum held by the validator, storing the pub keys of the signatures needed
   This is also used as the params to the initialize endpoint
 -}
-data MajorityMultiSignDatum = MajorityMultiSignDatum
+newtype MajorityMultiSignDatum = MajorityMultiSignDatum
   { signers :: [PubKeyHash]
   }
   deriving stock (Eq, Generic, Show)
