@@ -3,7 +3,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Spec.IntegrationWrappers (
-  contract,
+  IntegrationParams (..),
+  bypassContract,
+  correctContract,
   mintingPolicy,
   mintingPolicySymbol,
 ) where
@@ -19,7 +21,7 @@ import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Contracts (submitSignedTxConstraintsWith)
 import MajorityMultiSign.OnChain (checkMultisigned)
 import MajorityMultiSign.Schema
-import Plutus.Contract (Contract, ContractError (..), awaitTxConfirmed, ownPubKey)
+import Plutus.Contract (Contract, ContractError (..), awaitTxConfirmed, ownPubKey, submitTxConstraintsWith)
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx qualified
 import PlutusTx.Prelude
@@ -29,13 +31,23 @@ data IntegrationParams = IntegrationParams
   , pubKeys :: [PubKey]
   }
 
-contract :: IntegrationParams -> Contract w s ContractError ()
-contract IntegrationParams {mmsId, pubKeys} = do
+correctContract :: IntegrationParams -> Contract w s ContractError ()
+correctContract IntegrationParams {mmsId, pubKeys} = do
   pkh <- Ledger.pubKeyHash <$> ownPubKey
   let value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
       tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh value
   ledgerTx <- submitSignedTxConstraintsWith @Void mmsId pubKeys lookups tx
+  void $ awaitTxConfirmed $ Ledger.txId ledgerTx
+
+-- | Attempts to mint a value without invoking the multisign contract at all - should always fail
+bypassContract :: IntegrationParams -> Contract w s ContractError ()
+bypassContract IntegrationParams {mmsId} = do
+  pkh <- Ledger.pubKeyHash <$> ownPubKey
+  let value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
+      lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
+      tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh value
+  ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.txId ledgerTx
 
 {-# INLINEABLE mkPolicy #-}
