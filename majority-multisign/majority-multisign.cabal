@@ -66,6 +66,7 @@ library
     , extra
     , freer-simple       ^>=1.2.1.1
     , lens               ^>=4.19.2
+    , openapi3           <3.2
     , playground-common
     , plutus-contract
     , plutus-ledger
@@ -76,6 +77,7 @@ library
     , plutus-tx-plugin
     , plutus-use-cases
     , prettyprinter      ^>=1.7.0
+    , recursion-schemes  >=5 && <6
     , row-types          ^>=1.0.1.0
     , text
 
