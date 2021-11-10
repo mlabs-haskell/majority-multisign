@@ -9,7 +9,7 @@ module MajorityMultiSign.Contracts (
   submitSignedTxConstraintsWith,
 ) where
 
-import Cardano.Prelude (foldMap, subsequences, (<>))
+import Cardano.Prelude (foldMap, rightToMaybe, subsequences, (<>))
 import Control.Monad (void)
 import Data.Bifunctor (bimap)
 import Data.Kind (Type)
@@ -17,14 +17,18 @@ import Data.List ((\\))
 import Data.Map qualified as Map
 import Data.Monoid (Last (..))
 import Data.Row (Row)
+import Data.Text (Text)
 import Data.Void (Void)
 import Ledger (
   AssetClass,
+  ChainIndexTxOut,
   TokenName,
+  TxOutRef,
   pubKeyHash,
   txId,
   validatorHash,
  )
+import Ledger qualified
 import Ledger.Constraints (ScriptLookups, TxConstraints)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.TxConstraints qualified as Constraints
@@ -36,7 +40,6 @@ import Ledger.Typed.Scripts (
   RedeemerType,
  )
 import MajorityMultiSign.OnChain (
-  findUTxO,
   validator,
   validatorFromIdentifier,
   validatorHashFromIdentifier,
@@ -59,6 +62,7 @@ import Plutus.Contract (
   submitTxConstraintsWith,
   tell,
   throwError,
+  utxosAt,
  )
 import Plutus.Contract.Types (mapError)
 import Plutus.Contracts.Currency (CurrencyError (..), currencySymbol, mintContract)
@@ -67,8 +71,9 @@ import Plutus.V1.Ledger.Api (
   PubKeyHash,
   Redeemer (..),
   ToData,
+  fromBuiltinData,
  )
-import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
+import Plutus.V1.Ledger.Value (assetClass, assetClassValue, assetClassValueOf)
 import PlutusTx (toBuiltinData)
 import PlutusTx.Prelude hiding (foldMap, (<>))
 
@@ -145,7 +150,7 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
           <> makeSigningConstraint @Any keyOptions
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
-          <> Constraints.mustPayToTheScript (getDatum datum) (assetClassValue mms.asset 1)
+          <> Constraints.mustPayToOtherScript mms.address datum (assetClassValue mms.asset 1)
 
   unless (sufficientPubKeys pubKeys [] keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
 
@@ -187,3 +192,39 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
 
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
   void $ awaitTxConfirmed $ txId ledgerTx
+
+{- | Finds the UTxO in a majority multisign containing the asset,
+ and returns it, its datum and the signer list
+-}
+findUTxO ::
+  forall (w :: Type) (s :: Row Type).
+  MajorityMultiSignIdentifier ->
+  Contract w s ContractError ((TxOutRef, ChainIndexTxOut), Datum, [PubKeyHash])
+findUTxO mms = do
+  utxos <- utxosAt $ Ledger.scriptHashAddress mms.address
+  let utxoFiltered = Map.toList $ Map.filter valid utxos
+      valid =
+        (> 0)
+          . flip assetClassValueOf mms.asset
+          . Ledger.txOutValue
+          . Ledger.toTxOut
+  case utxoFiltered of
+    [(txOutRef, txOut)] ->
+      maybeToError "Couldn't extract datum" $ do
+        datum <- getChainIndexTxOutDatum txOut
+        typedDatum <- fromBuiltinData @MajorityMultiSignDatum $ getDatum datum
+        return ((txOutRef, txOut), datum, typedDatum.signers)
+    _ -> throwError $ OtherError "Couldn't find UTxO"
+
+-- | fromJust that gives a Contract error
+maybeToError ::
+  forall (w :: Type) (s :: Row Type) (a :: Type).
+  Text ->
+  Maybe a ->
+  Contract w s ContractError a
+maybeToError err = maybe (throwError $ OtherError err) return
+
+-- | Extracts the datum from a ChainIndexTxOut
+getChainIndexTxOutDatum :: ChainIndexTxOut -> Maybe Datum
+getChainIndexTxOutDatum Ledger.PublicKeyChainIndexTxOut {} = Nothing
+getChainIndexTxOutDatum Ledger.ScriptChainIndexTxOut {_ciTxOutDatum = eDatum} = rightToMaybe eDatum
