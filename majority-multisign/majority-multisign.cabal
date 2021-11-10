@@ -86,8 +86,13 @@ test-suite majority-multisign-test
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
   other-modules:  Spec.Direct
+                  Spec.Integration
+                  Spec.IntegrationWrappers
   build-depends:
     , bytestring
+    , containers
+    , data-default
+    , lens
     , majority-multisign
     , plutus-contract
     , plutus-ledger
