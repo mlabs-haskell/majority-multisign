@@ -150,7 +150,7 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
           <> makeSigningConstraint @Any keyOptions
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
-          <> Constraints.mustPayToOtherScript mms.address datum (assetClassValue mms.asset 1)
+          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (assetClassValue mms.asset 1)
 
   unless (sufficientPubKeys pubKeys [] keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
 
@@ -201,7 +201,7 @@ findUTxO ::
   MajorityMultiSignIdentifier ->
   Contract w s ContractError ((TxOutRef, ChainIndexTxOut), Datum, [PubKeyHash])
 findUTxO mms = do
-  utxos <- utxosAt $ Ledger.scriptHashAddress mms.address
+  utxos <- utxosAt $ Ledger.scriptHashAddress $ validatorHashFromIdentifier mms
   let utxoFiltered = Map.toList $ Map.filter valid utxos
       valid =
         (> 0)

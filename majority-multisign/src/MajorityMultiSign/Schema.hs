@@ -23,7 +23,6 @@ import Ledger.Crypto (PubKey)
 import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Endpoint, type (.\/))
 import Plutus.V1.Ledger.Api (PubKeyHash)
-import Plutus.V1.Ledger.Scripts (ValidatorHash)
 import Plutus.V1.Ledger.Value (AssetClass)
 import PlutusTx qualified
 import PlutusTx.NatRatio (NatRatio, ceiling, frac, fromNatural)
@@ -51,10 +50,9 @@ ceilNatRatioToInt = fromEnum . ceiling
 getMinSigners :: [a] -> Integer
 getMinSigners = ceilNatRatioToInt . (signReq *) . intToNatRatio . length
 
--- | Data type used to identify a majority multisign validator (the validator itself and the asset needed to call it)
+-- | Data type used to identify a majority multisign validator (the asset needed to call it)
 data MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
-  { address :: ValidatorHash
-  , asset :: AssetClass
+  { asset :: AssetClass
   }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
