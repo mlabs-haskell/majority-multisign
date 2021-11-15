@@ -52,6 +52,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams),
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
+  naturalLength,
  )
 import Playground.Contract (Tx)
 import Plutus.Contract (
@@ -110,7 +111,7 @@ initialize dat = do
  TODO: Optimise this, there is no need to generate all subsets and filter.
 -}
 getValidSignSets :: [PubKeyHash] -> [[PubKeyHash]]
-getValidSignSets ps = filter ((== minSigCount) . length) $ subsequences ps
+getValidSignSets ps = filter ((== minSigCount) . naturalLength) $ subsequences ps
   where
     minSigCount = getMinSigners ps
 

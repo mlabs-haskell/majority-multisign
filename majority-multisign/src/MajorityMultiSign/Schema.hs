@@ -19,12 +19,14 @@ module MajorityMultiSign.Schema (
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
+  naturalLength,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.Extras (encodeByteString)
 import Data.Functor.Foldable (Fix (Fix))
 import Data.OpenApi.Schema qualified as OpenApi
+import Data.Semigroup (Sum (Sum, getSum))
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
@@ -35,7 +37,7 @@ import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Value (AssetClass, CurrencySymbol (CurrencySymbol), TokenName (TokenName))
 import PlutusTx qualified
 import PlutusTx.NatRatio (NatRatio, ceiling, frac, fromNatural)
-import PlutusTx.Natural (Natural)
+import PlutusTx.Natural (Natural, nat)
 import PlutusTx.Prelude hiding (Eq, decodeUtf8)
 import Schema (
   FormArgumentF (FormHexF, FormMaybeF, FormObjectF, FormStringF),
@@ -51,19 +53,15 @@ import Prelude (Eq, Show)
 signReq :: NatRatio
 signReq = [frac| (1, 2) |] -- 0.5
 
-{-# INLINEABLE intToNatRatio #-}
-intToNatRatio :: Integer -> NatRatio
-intToNatRatio = fromNatural . toEnum @Natural
-
-{-# INLINEABLE ceilNatRatioToInt #-}
-ceilNatRatioToInt :: NatRatio -> Integer
-ceilNatRatioToInt = fromEnum . ceiling
+{-# INLINEABLE naturalLength #-}
+naturalLength :: Foldable t => t a -> Natural
+naturalLength = getSum . foldMap (Sum . const [nat| 1 |])
 
 {-# INLINEABLE getMinSigners #-}
 
 -- | Given a list of Signers, gets the minimum number of signers needed for a transaction to be valid
-getMinSigners :: [a] -> Integer
-getMinSigners = ceilNatRatioToInt . (signReq *) . intToNatRatio . length
+getMinSigners :: [a] -> Natural
+getMinSigners = ceiling . (signReq *) . fromNatural . naturalLength
 
 -- | Data type used to identify a majority multisign validator (the asset needed to call it)
 newtype MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
