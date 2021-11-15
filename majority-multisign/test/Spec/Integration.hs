@@ -6,22 +6,25 @@ import Data.Default (def)
 import Data.Function ((&))
 import Data.Map qualified as Map
 import Data.Text (Text)
-import Ledger (AssetClass, Datum (..), PubKeyHash, Value)
+import Ledger (AssetClass, Datum (Datum), PubKeyHash, Value)
 import Ledger qualified
 import Ledger.Scripts qualified as Scripts
 import MajorityMultiSign.Contracts (multiSignTokenName)
 import MajorityMultiSign.OnChain (validatorHashFromIdentifier)
-import MajorityMultiSign.Schema (MajorityMultiSignDatum (..), MajorityMultiSignIdentifier (..))
-import Plutus.Contract (Contract, ContractError (..), Empty)
+import MajorityMultiSign.Schema (
+  MajorityMultiSignDatum (MajorityMultiSignDatum),
+  MajorityMultiSignIdentifier (MajorityMultiSignIdentifier),
+  )
+import Plutus.Contract (Contract, ContractError (WalletError), Empty)
 import Plutus.Contract.Test qualified as Test
 import Plutus.Trace qualified as Trace
 import Plutus.Trace.Emulator qualified as Emulator
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
-import Plutus.V1.Ledger.Tx (Tx (..))
+import Plutus.V1.Ledger.Tx (Tx (txData, txMint, txOutputs))
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx qualified
 import PlutusTx.Prelude
-import Spec.IntegrationWrappers (IntegrationParams (..), bypassContract, correctContract)
+import Spec.IntegrationWrappers (IntegrationParams (IntegrationParams), bypassContract, correctContract)
 import Test.Tasty (TestTree, testGroup)
 import Wallet.Emulator.Error (WalletAPIError (ValidationError))
 import Prelude qualified as P
