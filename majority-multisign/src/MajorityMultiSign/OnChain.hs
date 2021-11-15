@@ -21,7 +21,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSign,
   MajorityMultiSignDatum (MajorityMultiSignDatum, signers),
   MajorityMultiSignIdentifier (MajorityMultiSignIdentifier, asset),
-  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct, keys),
+  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
   getMinSigners,
   naturalLength,
@@ -54,13 +54,13 @@ removeSigners (x : xs) ys = if x `elem` ys then removeSigners xs ys else x : rem
 {-# INLINEABLE getExpectedDatum #-}
 getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> MajorityMultiSignDatum
 getExpectedDatum UseSignaturesAct datum = datum
-getExpectedDatum UpdateKeysAct {keys} datum = datum {signers = keys}
+getExpectedDatum (UpdateKeysAct keys) datum = datum {signers = keys}
 
 -- | Checks if, when setting new signatures, all new keys have signed the transaction
 {-# INLINEABLE hasNewSignatures #-}
 hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 hasNewSignatures UseSignaturesAct _ _ = True
-hasNewSignatures UpdateKeysAct {keys} MajorityMultiSignDatum {signers} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
+hasNewSignatures (UpdateKeysAct keys) MajorityMultiSignDatum {signers} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
 
 -- | Checks the script has the correct token (containing the asset we want), forwards it to the right place, and has the datum we expect
 {-# INLINEABLE hasCorrectToken #-}

@@ -10,7 +10,7 @@ import Data.List (nub, (\\))
 import Data.List.NonEmpty (NonEmpty ((:|)), toList)
 import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
-import Data.Semigroup.Foldable.Class (Foldable1 (..))
+import Data.Semigroup.Foldable.Class (Foldable1 (fold1))
 import Data.Word (Word8)
 import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
 import MajorityMultiSign.Contracts (multiSignTokenName)
@@ -207,7 +207,7 @@ shrinkRedeemer ::
   Schema.MajorityMultiSignRedeemer ->
   [Schema.MajorityMultiSignRedeemer]
 shrinkRedeemer Schema.UseSignaturesAct = []
-shrinkRedeemer Schema.UpdateKeysAct {keys} =
+shrinkRedeemer (Schema.UpdateKeysAct keys) =
   Schema.UpdateKeysAct <$> shrinkList (const []) keys
 
 cycled50 :: [a] -> [a]
@@ -321,7 +321,7 @@ testProperty desc currentSignatories newSignatories knownSignatories =
     grade _datum Schema.UseSignaturesAct {} _value = Good
     grade
       Schema.MajorityMultiSignDatum {signers}
-      Schema.UpdateKeysAct {keys}
+      (Schema.UpdateKeysAct keys)
       _value
         | let newKeys = keys \\ signers
           , newKeys `subset` currentSignatories =
@@ -333,7 +333,7 @@ testProperty desc currentSignatories newSignatories knownSignatories =
       where
         pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
           Just Schema.UseSignaturesAct -> paysSelf val datum
-          Just Schema.UpdateKeysAct {keys} ->
+          Just (Schema.UpdateKeysAct keys) ->
             paysSelf val (Schema.MajorityMultiSignDatum keys)
           Nothing -> error "Unexpected redeemer type"
     intersection xs = nub . filter (`elem` xs)

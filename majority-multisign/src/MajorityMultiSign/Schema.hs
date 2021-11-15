@@ -14,7 +14,7 @@ module MajorityMultiSign.Schema (
   MajorityMultiSign,
   MajorityMultiSignDatum (MajorityMultiSignDatum, signers),
   MajorityMultiSignIdentifier (MajorityMultiSignIdentifier, asset),
-  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct, keys),
+  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
@@ -54,6 +54,8 @@ signReq :: NatRatio
 signReq = [frac| (1, 2) |] -- 0.5
 
 {-# INLINEABLE naturalLength #-}
+
+-- | A count of the items in a `Foldable` is always 'Natural'.
 naturalLength :: Foldable t => t a -> Natural
 naturalLength = getSum . foldMap (Sum . const [nat| 1 |])
 
@@ -115,9 +117,7 @@ PlutusTx.unstableMakeIsData ''MajorityMultiSignDatum
 -- | Redeemer of the validator, allowing for simple use (not modifying datum), or key updating
 data MajorityMultiSignRedeemer
   = UseSignaturesAct
-  | UpdateKeysAct
-      { keys :: [PubKeyHash]
-      }
+  | UpdateKeysAct [PubKeyHash]
   deriving stock (Eq, Show)
 
 PlutusTx.unstableMakeIsData ''MajorityMultiSignRedeemer
