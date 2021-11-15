@@ -82,7 +82,9 @@ hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
 -- | External function called by other contracts to ensure multisigs present
 {-# INLINEABLE checkMultisigned #-}
 checkMultisigned :: MajorityMultiSignIdentifier -> ScriptContext -> Bool
-checkMultisigned MajorityMultiSignIdentifier {asset} ctx = any containsAsset inputs
+checkMultisigned MajorityMultiSignIdentifier {asset} ctx =
+  traceIfFalse "Missing Multisign Asset" $
+    any containsAsset inputs
   where
     inputs :: [TxInInfo]
     inputs = txInfoInputs $ scriptContextTxInfo ctx
