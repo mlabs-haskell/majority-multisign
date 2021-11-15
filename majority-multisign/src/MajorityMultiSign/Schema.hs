@@ -12,18 +12,18 @@
 
 module MajorityMultiSign.Schema (
   MajorityMultiSign,
-  MajorityMultiSignDatum (..),
-  MajorityMultiSignIdentifier (..),
-  MajorityMultiSignRedeemer (..),
+  MajorityMultiSignDatum (MajorityMultiSignDatum, signers),
+  MajorityMultiSignIdentifier (MajorityMultiSignIdentifier, asset),
+  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct, keys),
   MajorityMultiSignSchema,
-  MajorityMultiSignValidatorParams (..),
-  SetSignaturesParams (..),
+  MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
+  SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.Extras (encodeByteString)
-import Data.Functor.Foldable (Fix (..))
+import Data.Functor.Foldable (Fix (Fix))
 import Data.OpenApi.Schema qualified as OpenApi
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8)
@@ -32,14 +32,14 @@ import Ledger.Crypto (PubKey)
 import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Endpoint, type (.\/))
 import Plutus.V1.Ledger.Api (PubKeyHash)
-import Plutus.V1.Ledger.Value (AssetClass, CurrencySymbol (..), TokenName (..))
+import Plutus.V1.Ledger.Value (AssetClass, CurrencySymbol (CurrencySymbol), TokenName (TokenName))
 import PlutusTx qualified
 import PlutusTx.NatRatio (NatRatio, ceiling, frac, fromNatural)
 import PlutusTx.Natural (Natural)
 import PlutusTx.Prelude hiding (Eq, decodeUtf8)
 import Schema (
-  FormArgumentF (..),
-  FormSchema (..),
+  FormArgumentF (FormHexF, FormMaybeF, FormObjectF, FormStringF),
+  FormSchema (FormSchemaMaybe, FormSchemaObject),
   ToArgument (toArgument),
   ToSchema (toSchema),
  )

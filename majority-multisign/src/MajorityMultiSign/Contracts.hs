@@ -15,7 +15,7 @@ import Data.Bifunctor (bimap)
 import Data.Kind (Type)
 import Data.List ((\\))
 import Data.Map qualified as Map
-import Data.Monoid (Last (..))
+import Data.Monoid (Last (Last))
 import Data.Row (Row)
 import Data.Text (Text)
 import Data.Void (Void)
@@ -45,18 +45,18 @@ import MajorityMultiSign.OnChain (
   validatorHashFromIdentifier,
  )
 import MajorityMultiSign.Schema (
-  MajorityMultiSignDatum (..),
-  MajorityMultiSignIdentifier (..),
-  MajorityMultiSignRedeemer (..),
+  MajorityMultiSignDatum (MajorityMultiSignDatum),
+  MajorityMultiSignIdentifier,
+  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
   MajorityMultiSignSchema,
-  MajorityMultiSignValidatorParams (..),
-  SetSignaturesParams (..),
+  MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams),
+  SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
  )
 import Playground.Contract (Tx)
 import Plutus.Contract (
   Contract,
-  ContractError (..),
+  ContractError (OtherError),
   awaitTxConfirmed,
   ownPubKey,
   submitTxConstraintsWith,
@@ -65,11 +65,11 @@ import Plutus.Contract (
   utxosAt,
  )
 import Plutus.Contract.Types (mapError)
-import Plutus.Contracts.Currency (CurrencyError (..), currencySymbol, mintContract)
+import Plutus.Contracts.Currency (CurrencyError (CurContractError), currencySymbol, mintContract)
 import Plutus.V1.Ledger.Api (
-  Datum (..),
+  Datum (Datum, getDatum),
   PubKeyHash,
-  Redeemer (..),
+  Redeemer (Redeemer),
   ToData,
   fromBuiltinData,
  )
