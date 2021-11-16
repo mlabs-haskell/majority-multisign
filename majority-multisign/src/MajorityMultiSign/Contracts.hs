@@ -52,6 +52,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams),
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
+  maximumSigners,
   naturalLength,
  )
 import Playground.Contract (Tx)
@@ -153,7 +154,10 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
           <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (assetClassValue mms.asset 1)
 
-  unless (sufficientPubKeys pubKeys [] keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
+  unless (sufficientPubKeys pubKeys [] keyOptions) $
+    throwError $ OtherError "Insufficient pub keys given"
+  unless (naturalLength pubKeys <= maximumSigners) $
+    throwError $ OtherError "Too many signers given"
 
   submitTxConstraintsWith @Any lookups' tx'
 
@@ -189,7 +193,10 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
           <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (assetClassValue mmsIdentifier.asset 1)
 
-  unless (sufficientPubKeys pubKeys newKeysDiff keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
+  unless (sufficientPubKeys pubKeys newKeysDiff keyOptions) $
+    throwError $ OtherError "Insufficient pub keys given"
+  unless (naturalLength newKeys <= maximumSigners) $
+    throwError $ OtherError "Too many new signers given"
 
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
   void $ awaitTxConfirmed $ txId ledgerTx

@@ -19,6 +19,7 @@ module MajorityMultiSign.Schema (
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
+  maximumSigners,
   naturalLength,
 ) where
 
@@ -53,6 +54,12 @@ import Prelude (Eq, Show, (<$>), (<*>))
 -- | Signing proportion required
 signReq :: NatRatio
 signReq = [frac| (1, 2) |] -- 0.5
+
+{-# INLINEABLE maximumSigners #-}
+
+-- | Maximum number of signers allowed
+maximumSigners :: Natural
+maximumSigners = [nat| 10 |]
 
 {-# INLINEABLE naturalLength #-}
 

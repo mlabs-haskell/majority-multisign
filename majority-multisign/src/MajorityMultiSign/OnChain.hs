@@ -24,6 +24,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
   getMinSigners,
+  maximumSigners,
   naturalLength,
  )
 import Plutus.V1.Ledger.Api (TxOut (txOutDatumHash, txOutValue))
@@ -43,6 +44,7 @@ mkValidator ::
 mkValidator params dat red ctx =
   hasCorrectToken params ctx (getExpectedDatum red dat)
     && isSufficientlySigned red dat ctx
+    && isUnderSizeLimit red dat
 
 {-# INLINEABLE removeSigners #-}
 removeSigners :: [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
@@ -105,6 +107,15 @@ isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
     signersUnique = nub signers
     minSigners :: Natural
     minSigners = getMinSigners signersUnique
+
+-- | Checks the validator datum fits under the size limit
+{-# INLINEABLE isUnderSizeLimit #-}
+isUnderSizeLimit :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> Bool
+isUnderSizeLimit UseSignaturesAct MajorityMultiSignDatum {signers} =
+  traceIfFalse "Datum too large" (naturalLength signers <= maximumSigners)
+isUnderSizeLimit (UpdateKeysAct keys) MajorityMultiSignDatum {signers} =
+  traceIfFalse "Datum too large" (naturalLength signers <= maximumSigners)
+    && traceIfFalse "Redeemer too large" (naturalLength keys <= maximumSigners)
 
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =

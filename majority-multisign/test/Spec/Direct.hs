@@ -20,7 +20,8 @@ import Plutus.V1.Ledger.Api (fromBytes)
 import Plutus.V1.Ledger.Scripts (Validator (getValidator), mkValidatorScript)
 import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
-import PlutusTx.Natural (nat)
+import PlutusTx.Natural (Natural, nat)
+import PlutusTx.Prelude (pred)
 import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Plutus.Context (
@@ -45,7 +46,7 @@ import Test.Tasty.Plutus.TestData (
   Methodology (Methodology),
   static,
  )
-import Prelude
+import Prelude hiding (pred)
 
 tests :: TestTree
 tests =
@@ -190,7 +191,14 @@ tests =
     validatorScript = getValidator (validator initialParams)
 
 arbitraryDatumFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignDatum
-arbitraryDatumFrom sigs = Schema.MajorityMultiSignDatum <$> sublistOf sigs
+arbitraryDatumFrom sigs =
+  Schema.MajorityMultiSignDatum . takeNatural Schema.maximumSigners
+    <$> sublistOf sigs
+
+takeNatural :: Natural -> [a] -> [a]
+takeNatural [nat| 0 |] _ = []
+takeNatural _ [] = []
+takeNatural n (x : xs) = x : takeNatural (pred n) xs
 
 shrinkDatum :: Schema.MajorityMultiSignDatum -> [Schema.MajorityMultiSignDatum]
 shrinkDatum Schema.MajorityMultiSignDatum {signers} =
@@ -200,7 +208,7 @@ arbitraryRedeemerFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignRedeemer
 arbitraryRedeemerFrom sigs =
   oneof
     [ pure Schema.UseSignaturesAct
-    , Schema.UpdateKeysAct <$> sublistOf sigs
+    , Schema.UpdateKeysAct . takeNatural Schema.maximumSigners <$> sublistOf sigs
     ]
 
 shrinkRedeemer ::
