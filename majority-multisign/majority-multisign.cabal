@@ -90,10 +90,12 @@ test-suite majority-multisign-test
   other-modules:  Spec.Direct
                   Spec.Integration
                   Spec.IntegrationWrappers
+                  Spec.Roundtrip
   build-depends:
     , bytestring
     , containers
     , data-default
+    , generic-arbitrary   ==0.2.*
     , lens
     , majority-multisign
     , plutus-contract
@@ -103,8 +105,9 @@ test-suite majority-multisign-test
     , plutus-numeric
     , plutus-tx
     , plutus-tx-plugin
-    , semigroupoids       ^>=5.3
     , QuickCheck          ^>=2.14.2
+    , semigroupoids       ^>=5.3
+    , quickcheck-instances ^>=0.3.25
     , tasty               ^>=1.4.1
     , tasty-plutus        >=3.4 && <4.1
     , tasty-quickcheck    ^>=0.10.1.2

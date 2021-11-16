@@ -157,7 +157,7 @@ data SetSignaturesParams = SetSignaturesParams
   , newKeys :: [PubKeyHash]
   , pubKeys :: [PubKey]
   }
-  deriving stock (Generic)
+  deriving stock (Eq, Generic, Show)
 
 instance FromJSON SetSignaturesParams where
   parseJSON = Aeson.withObject "SetSignaturesParams" $
