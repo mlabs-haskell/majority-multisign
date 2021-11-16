@@ -14,7 +14,7 @@ import MajorityMultiSign.OnChain (validatorHashFromIdentifier)
 import MajorityMultiSign.Schema (
   MajorityMultiSignDatum (MajorityMultiSignDatum),
   MajorityMultiSignIdentifier (MajorityMultiSignIdentifier),
-  )
+ )
 import Plutus.Contract (Contract, ContractError (WalletError), Empty)
 import Plutus.Contract.Test qualified as Test
 import Plutus.Trace qualified as Trace
