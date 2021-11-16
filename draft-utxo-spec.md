@@ -57,7 +57,7 @@ note: The different Address types each indicate how transactions should be authe
 
 ## Common Types
 ```haskell
-data MajorityMultiSignIdentifier  =
+data MajorityMultiSignIdentifier =
   MajorityMultiSignIdentifier 
     { asset :: AssetClass
     }
