@@ -88,6 +88,8 @@ test-suite majority-multisign-test
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
   other-modules:  Spec.Direct
+                  Spec.Golden
+                  Spec.Instances
                   Spec.Integration
                   Spec.IntegrationWrappers
                   Spec.Roundtrip
@@ -99,6 +101,7 @@ test-suite majority-multisign-test
     , lens
     , majority-multisign
     , plutus-contract
+    , plutus-golden       >=1.0 && <2.1
     , plutus-laws         >=1.0 && <2.1
     , plutus-ledger
     , plutus-ledger-api
