@@ -10,12 +10,12 @@ Specifications for Validators will describe the Datum / redeemer, validation rul
 
 ## Introduction - Project goals
 The goal of this project is to provide a multi-key sign of authority for contracts that risk large capitol loss upon leaking of a key.  
-The Validator will hold a series of keys and require a majority signing for use of the validator, be that for the intended external usecase, or for adding a new key.
+The Validator will hold a series of keys and require a majority signing for use of the validator, be that for the intended external usecase, or for modifying the current key set.
 
 The system will need to enable the following workflows
 1. Set up with an initial set of pub keys, minting the state token
 2. Use the validator to enforce a transaction to be signed by a majority of keys involved.
-3. Change a pubkey in use by index given majority signing
+3. Change the current PubKeyHash set
 
 ## Specification Conventions
 In order to simplify and clarify the specification, this document adopts a few basic conventions:
@@ -50,40 +50,39 @@ note: The different Address types each indicate how transactions should be authe
 
 ## Unanswered Questions
 
-
 ## Known issues
+- `MajorityMultiSignDatum` uses a list of keys for its state - it is possible for this to expand to such a size that the datum becomes unusable. This should be bounded at an Offchain and Onchain level to a sensible value, such as 10.
+
+## Notes
 
 ## Common Types
 ```haskell
-data MajorityMultiSign =
-  MajorityMultiSign
-    { address :: ValidatorHash
-    , asset :: AssetClass
+data MajorityMultiSignIdentifier =
+  MajorityMultiSignIdentifier 
+    { asset :: AssetClass
     }
 ```
 
 ## One-Shot Tokens
-These tokens are minted as unique NFTs, scripts which need them should be parameterized over their `CurrencySymbol`.
+These tokens are minted as unique NFTs, scripts which need them should be parameterized over their `AssetClass`.
 
 Tools to mint these are currently in `Plutus.Contracts.Currency`
 
-### MajorityMultiSignSigs Token
+### MajorityMultiSignDatum Token
 Purpose: This token is used to store the list of current pubkeys needed for signature.
-It is minted as the contract is deployed, and sent to the resulting precomputed address by applying the `currencySymbol` as a parameter to the `MajorityMultiSignValidator`
+It is minted as the contract is deployed, and sent to the resulting precomputed address by applying the `AssetClass` as a parameter to the `MajorityMultiSignValidator`
 
 Token Type: This functions as a State token for the `MajorityMultiSignValidator`, as well as a permission token for any external contract using this project.  
 
 Carries Datum:
 ```haskell
-MajorityMultiSignSigs
+MajorityMultiSignDatum
   { signers :: [PubKeyHash]
   }
 ```
 Initialized to
 ```haskell
-MajorityMultiSignSigs
-  { signers = initialSigs -- provided by the setup contract
-  }
+MajorityMultiSignDatum -- provided by the initialize contract
 ```
 Cannot be burned.  
 Can only be minted once.  
@@ -93,7 +92,7 @@ Inputs:
 
 Outputs:
 - Fees out reminder -> USER wallet
-- MajorityMultiSignSigs Token (MINTED) -> MajorityMultiSignValidator address parameterised by the minted token `AssetClass`
+- MajorityMultiSignDatum Token (MINTED) -> MajorityMultiSignValidator address parameterised by the minted token `AssetClass`
 
 ## MajorityMultiSignValidator
 Parameters:
@@ -103,68 +102,64 @@ MajorityMultiSignValidatorParams
   }
 ```
 
-Purpose: Ensures enough signatures for usage or changing of MajorityMultiSignSigs token
+Purpose: Ensures enough signatures for usage or changing of MajorityMultiSignDatum token
 
-Datum: `MajorityMultiSignSigs`
+Datum: `MajorityMultiSignDatum`
 
 Redeemer:
 ```haskell
-MajorityMultiSignAct
+MajorityMultiSignRedeemer
   = UseSignaturesAct
-  | UpdateKeyAct
-    { newKey :: PubKeyHash
-    , index :: Integer
+  | UpdateKeysAct
+    { keys :: [PubKeyHash]
     }
 ```
 
 Both actions in this validator require a majority signing of the keys present.  
-They must all include the `MajorityMultiSignSigs` token, returning it back to the validator.  
-They must all be signed by at least half of the keys in the `MajorityMultiSignSigs.signers`, rounded up.
+They must all include the `MajorityMultiSignDatum` token, returning it back to the validator.  
+They must all be signed by at least half of the keys in the `MajorityMultiSignDatum.signers`, rounded up.
 
 ### UseSignaturesAct
-Purpose: Simply allow the `MajorityMultiSignSigs` to be used (and returned) given signatures provided. This is the usual usecase of this project.
+Purpose: Simply allow the `MajorityMultiSignDatum` to be used (and returned) given signatures provided. This is the usual usecase of this project.
 
 Validation rules:
-- More than half of `MajorityMultiSignSigs.signers` must sign the transaction
-- `MajorityMultiSignSigs` must be sent back to `MajorityMultiSignValidator` unmodified
+- More than half of `MajorityMultiSignDatum.signers` must sign the transaction
+- `MajorityMultiSignDatum` must be sent back to `MajorityMultiSignValidator` unmodified
 
 Inputs:
 - Fees in from USER
-- `MajorityMultiSignSigs` from `MajorityMultiSignValidator`
+- `MajorityMultiSignDatum` from `MajorityMultiSignValidator`
 
 Outputs:
 - Fees out raminder -> User wallet
-- `MajorityMultiSignSigs` -> `MajorityMultiSignValidator` unmodified
+- `MajorityMultiSignDatum` -> `MajorityMultiSignValidator` unmodified
 
-### UpdateKeyAct
-Purpose: Allow a key in `MajorityMultiSignSigs` to be updated, given majority sign
+### UpdateKeysAct
+Purpose: Allows the key set in `MajorityMultiSignDatum` to be updated, given majority signature
 
 Validation rules:
-- More than half of `MajorityMultiSignSigs.signers` must sign the transaction
-- `0 <= UpdateKeyAct.index < length MajorityMultiSignSigs.signers`
-- `MajorityMultiSignSigs` must be sent back to `MajorityMultiSignValidator`
-- `MajorityMultiSignSigs.signers !! UpdateKeyAct.index` updated to `UpdateKeyAct.newKey`
+- More than half of `MajorityMultiSignDatum.signers` must sign the transaction
+- `MajorityMultiSignDatum` must be sent back to `MajorityMultiSignValidator`
+- `MajorityMultiSignDatum.signers` updated to `UpdateKeysAct.keys`
 
 Inputs:
 - Fees in from USER
-- `MajorityMultiSignSigs` from `MajorityMultiSignValidator`
+- `MajorityMultiSignDatum` from `MajorityMultiSignValidator`
 
 Outputs:
 - Fees out raminder -> User wallet
-- `MajorityMultiSignSigs` -> `MajorityMultiSignValidator` updated as above
+- `MajorityMultiSignDatum` -> `MajorityMultiSignValidator` updated as above
 
 ## Contracts
 ### Initialise contract
 Parameters:
 ```haskell
-InitParams
-  { initialKeys :: [PubKeyHash]
-  }
+MajorityMultiSignDatum
 ```
-This will use the `Plutus.Contracts.Currency` contract to mint the initial `MajorityMultiSignSigs` token, calculate the address of the validator using the given params, and send the token there with the correct default datum.
+This will use the `Plutus.Contracts.Currency` contract to mint the initial `MajorityMultiSignDatum` token, calculate the address of the validator using the given params, and send the token there with the correct default datum.
 
-### RequireValidation
+### `submitSignedTxConstraintsWith`
 *Note: This is implemented not as a usual contract, but as a function that takes a transactions lookups and constraints, and adds everything needed to add the multisign validator to the transaction.*
-Parameters: `MajorityMultiSign -> [Privkey] -> (lookups, constraints) -> (lookups, constraints)`.
+Parameters: `MajorityMultiSignIdentifier -> [Pubkey] -> ScriptLookups Any -> TxConstraints (RedeemerType a) (DatumType a) -> Contract w s ContractError Tx`.
 
-This will add the validator to the lookups, require the asset class in the inputs.
+This will submit a transaction with the multisign elements added to the lookups and constraints. As such, the tail of the type signature matches that of `submitConstraintsWith`.
