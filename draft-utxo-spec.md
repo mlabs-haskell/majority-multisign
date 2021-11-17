@@ -162,4 +162,4 @@ This will use the `Plutus.Contracts.Currency` contract to mint the initial `Majo
 *Note: This is implemented not as a usual contract, but as a function that takes a transactions lookups and constraints, and adds everything needed to add the multisign validator to the transaction.*
 Parameters: `MajorityMultiSignIdentifier -> [Pubkey] -> ScriptLookups Any -> TxConstraints (RedeemerType a) (DatumType a) -> Contract w s ContractError Tx`.
 
-This will submit a submit a transaction with the multisign elements added to the lookups and constraints. As such, the tail of the type signature matches that of `submitConstraintsWith`.
+This will submit a transaction with the multisign elements added to the lookups and constraints. As such, the tail of the type signature matches that of `submitConstraintsWith`.
