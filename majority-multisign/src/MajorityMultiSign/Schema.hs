@@ -12,19 +12,23 @@
 
 module MajorityMultiSign.Schema (
   MajorityMultiSign,
-  MajorityMultiSignDatum (..),
-  MajorityMultiSignIdentifier (..),
-  MajorityMultiSignRedeemer (..),
+  MajorityMultiSignDatum (MajorityMultiSignDatum, signers),
+  MajorityMultiSignIdentifier (MajorityMultiSignIdentifier, asset),
+  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
   MajorityMultiSignSchema,
-  MajorityMultiSignValidatorParams (..),
-  SetSignaturesParams (..),
+  MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
+  SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
+  maximumSigners,
+  naturalLength,
 ) where
 
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson (FromJSON, ToJSON, (.:), (.=))
+import Data.Aeson qualified as Aeson
 import Data.Aeson.Extras (encodeByteString)
-import Data.Functor.Foldable (Fix (..))
+import Data.Functor.Foldable (Fix (Fix))
 import Data.OpenApi.Schema qualified as OpenApi
+import Data.Semigroup (Sum (Sum, getSum))
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
@@ -32,18 +36,18 @@ import Ledger.Crypto (PubKey)
 import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Endpoint, type (.\/))
 import Plutus.V1.Ledger.Api (PubKeyHash)
-import Plutus.V1.Ledger.Value (AssetClass, CurrencySymbol (..), TokenName (..))
+import Plutus.V1.Ledger.Value (AssetClass, CurrencySymbol (CurrencySymbol), TokenName (TokenName))
 import PlutusTx qualified
 import PlutusTx.NatRatio (NatRatio, ceiling, frac, fromNatural)
-import PlutusTx.Natural (Natural)
-import PlutusTx.Prelude hiding (Eq, decodeUtf8)
+import PlutusTx.Natural (Natural, nat)
+import PlutusTx.Prelude hiding (Eq, decodeUtf8, (<$>), (<*>))
 import Schema (
-  FormArgumentF (..),
-  FormSchema (..),
+  FormArgumentF (FormHexF, FormMaybeF, FormObjectF, FormStringF),
+  FormSchema (FormSchemaMaybe, FormSchemaObject),
   ToArgument (toArgument),
   ToSchema (toSchema),
  )
-import Prelude (Eq, Show)
+import Prelude (Eq, Show, (<$>), (<*>))
 
 {-# INLINEABLE signReq #-}
 
@@ -51,28 +55,40 @@ import Prelude (Eq, Show)
 signReq :: NatRatio
 signReq = [frac| (1, 2) |] -- 0.5
 
-{-# INLINEABLE intToNatRatio #-}
-intToNatRatio :: Integer -> NatRatio
-intToNatRatio = fromNatural . toEnum @Natural
+{-# INLINEABLE maximumSigners #-}
 
-{-# INLINEABLE ceilNatRatioToInt #-}
-ceilNatRatioToInt :: NatRatio -> Integer
-ceilNatRatioToInt = fromEnum . ceiling
+-- | Maximum number of signers allowed
+maximumSigners :: Natural
+maximumSigners = [nat| 10 |]
+
+{-# INLINEABLE naturalLength #-}
+
+-- | A count of the items in a `Foldable` is always 'Natural'.
+naturalLength :: Foldable t => t a -> Natural
+naturalLength = getSum . foldMap (Sum . const one)
 
 {-# INLINEABLE getMinSigners #-}
 
 -- | Given a list of Signers, gets the minimum number of signers needed for a transaction to be valid
-getMinSigners :: [a] -> Integer
-getMinSigners = ceilNatRatioToInt . (signReq *) . intToNatRatio . length
+getMinSigners :: [a] -> Natural
+getMinSigners = ceiling . (signReq *) . fromNatural . naturalLength
 
 -- | Data type used to identify a majority multisign validator (the asset needed to call it)
 newtype MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
   { asset :: AssetClass
   }
   deriving stock (Eq, Generic, Show)
-  deriving anyclass (FromJSON, OpenApi.ToSchema, ToJSON)
 
-PlutusTx.unstableMakeIsData ''MajorityMultiSignIdentifier
+instance FromJSON MajorityMultiSignIdentifier where
+  parseJSON = Aeson.withObject "MajorityMultiSignIdentifier" $
+    \val -> MajorityMultiSignIdentifier <$> val .: "asset"
+
+instance ToJSON MajorityMultiSignIdentifier where
+  toJSON MajorityMultiSignIdentifier {asset} = Aeson.object ["asset" .= asset]
+
+instance OpenApi.ToSchema MajorityMultiSignIdentifier
+
+PlutusTx.makeIsDataIndexed ''MajorityMultiSignIdentifier [('MajorityMultiSignIdentifier, 0)]
 PlutusTx.makeLift ''MajorityMultiSignIdentifier
 
 instance ToSchema MajorityMultiSignIdentifier where
@@ -81,15 +97,18 @@ instance ToSchema MajorityMultiSignIdentifier where
 
 instance ToArgument MajorityMultiSignIdentifier where
   toArgument MajorityMultiSignIdentifier {asset} =
-    Fix $ FormObjectF [("asset", toArgument (Just asset))]
+    Fix $
+      FormObjectF
+        [
+          ( "asset"
+          , Fix $ FormMaybeF (toSchema @AssetClass) $ Just $ toArgument asset
+          )
+        ]
 
 -- | Params to the majority multisign validator, as the asset class of the `MajorityMultiSignDatum`
 newtype MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
   { asset :: AssetClass
   }
-
-instance ToArgument a => ToArgument (Maybe a) where
-  toArgument = Fix . FormMaybeF (toSchema @a) . fmap toArgument
 
 deriving anyclass instance ToArgument AssetClass
 
@@ -110,19 +129,27 @@ newtype MajorityMultiSignDatum = MajorityMultiSignDatum
   { signers :: [PubKeyHash]
   }
   deriving stock (Eq, Generic, Show)
-  deriving anyclass (FromJSON, ToJSON)
 
-PlutusTx.unstableMakeIsData ''MajorityMultiSignDatum
+instance FromJSON MajorityMultiSignDatum where
+  parseJSON = Aeson.withObject "MajorityMultiSignDatum" $
+    \val -> MajorityMultiSignDatum <$> val .: "signers"
+
+instance ToJSON MajorityMultiSignDatum where
+  toJSON MajorityMultiSignDatum {signers} = Aeson.object ["signers" .= signers]
+
+PlutusTx.makeIsDataIndexed
+  ''MajorityMultiSignDatum
+  [('MajorityMultiSignDatum, 0)]
 
 -- | Redeemer of the validator, allowing for simple use (not modifying datum), or key updating
 data MajorityMultiSignRedeemer
   = UseSignaturesAct
-  | UpdateKeysAct
-      { keys :: [PubKeyHash]
-      }
+  | UpdateKeysAct [PubKeyHash]
   deriving stock (Eq, Show)
 
-PlutusTx.unstableMakeIsData ''MajorityMultiSignRedeemer
+PlutusTx.makeIsDataIndexed
+  ''MajorityMultiSignRedeemer
+  [('UseSignaturesAct, 0), ('UpdateKeysAct, 1)]
 
 -- | Params to the set signature endpoint
 data SetSignaturesParams = SetSignaturesParams
@@ -130,10 +157,25 @@ data SetSignaturesParams = SetSignaturesParams
   , newKeys :: [PubKeyHash]
   , pubKeys :: [PubKey]
   }
-  deriving stock (Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving stock (Eq, Generic, Show)
 
-PlutusTx.unstableMakeIsData ''SetSignaturesParams
+instance FromJSON SetSignaturesParams where
+  parseJSON = Aeson.withObject "SetSignaturesParams" $
+    \val ->
+      SetSignaturesParams
+        <$> val .: "mmsIdentifier"
+        <*> val .: "newKeys"
+        <*> val .: "pubKeys"
+
+instance ToJSON SetSignaturesParams where
+  toJSON SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} =
+    Aeson.object
+      [ "mmsIdentifier" .= mmsIdentifier
+      , "newKeys" .= newKeys
+      , "pubKeys" .= pubKeys
+      ]
+
+PlutusTx.makeIsDataIndexed ''SetSignaturesParams [('SetSignaturesParams, 0)]
 
 data MajorityMultiSign
 

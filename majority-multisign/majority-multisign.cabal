@@ -88,24 +88,31 @@ test-suite majority-multisign-test
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
   other-modules:  Spec.Direct
+                  Spec.Golden
+                  Spec.Instances
                   Spec.Integration
                   Spec.IntegrationWrappers
+                  Spec.Roundtrip
   build-depends:
     , bytestring
     , containers
     , data-default
+    , generic-arbitrary   ==0.2.*
     , lens
     , majority-multisign
     , plutus-contract
+    , plutus-golden       >=1.0 && <2.1
+    , plutus-laws         >=1.0 && <2.1
     , plutus-ledger
     , plutus-ledger-api
     , plutus-numeric
     , plutus-tx
     , plutus-tx-plugin
-    , semigroupoids       ^>=5.3
     , QuickCheck          ^>=2.14.2
+    , semigroupoids       ^>=5.3
+    , quickcheck-instances ^>=0.3.25
     , tasty               ^>=1.4.1
-    , tasty-plutus        ^>=3.4
+    , tasty-plutus        >=3.4 && <4.1
     , tasty-quickcheck    ^>=0.10.1.2
     , text
 

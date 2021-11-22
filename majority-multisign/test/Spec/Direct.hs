@@ -1,7 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Spec.Direct (tests) where
 
@@ -10,7 +9,7 @@ import Data.List (nub, (\\))
 import Data.List.NonEmpty (NonEmpty ((:|)), toList)
 import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
-import Data.Semigroup.Foldable.Class (Foldable1 (..))
+import Data.Semigroup.Foldable.Class (Foldable1 (fold1))
 import Data.Word (Word8)
 import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
 import MajorityMultiSign.Contracts (multiSignTokenName)
@@ -20,7 +19,8 @@ import Plutus.V1.Ledger.Api (fromBytes)
 import Plutus.V1.Ledger.Scripts (Validator (getValidator), mkValidatorScript)
 import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
-import PlutusTx.Natural (nat)
+import PlutusTx.Natural (Natural, nat)
+import PlutusTx.Prelude (pred, zero)
 import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Plutus.Context (
@@ -45,7 +45,7 @@ import Test.Tasty.Plutus.TestData (
   Methodology (Methodology),
   static,
  )
-import Prelude
+import Prelude hiding (pred)
 
 tests :: TestTree
 tests =
@@ -190,7 +190,15 @@ tests =
     validatorScript = getValidator (validator initialParams)
 
 arbitraryDatumFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignDatum
-arbitraryDatumFrom sigs = Schema.MajorityMultiSignDatum <$> sublistOf sigs
+arbitraryDatumFrom sigs =
+  Schema.MajorityMultiSignDatum . takeNatural Schema.maximumSigners
+    <$> sublistOf sigs
+
+takeNatural :: Natural -> [a] -> [a]
+takeNatural _ [] = []
+takeNatural n (x : xs)
+  | n == zero = []
+  | otherwise = x : takeNatural (pred n) xs
 
 shrinkDatum :: Schema.MajorityMultiSignDatum -> [Schema.MajorityMultiSignDatum]
 shrinkDatum Schema.MajorityMultiSignDatum {signers} =
@@ -200,14 +208,14 @@ arbitraryRedeemerFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignRedeemer
 arbitraryRedeemerFrom sigs =
   oneof
     [ pure Schema.UseSignaturesAct
-    , Schema.UpdateKeysAct <$> sublistOf sigs
+    , Schema.UpdateKeysAct . takeNatural Schema.maximumSigners <$> sublistOf sigs
     ]
 
 shrinkRedeemer ::
   Schema.MajorityMultiSignRedeemer ->
   [Schema.MajorityMultiSignRedeemer]
 shrinkRedeemer Schema.UseSignaturesAct = []
-shrinkRedeemer Schema.UpdateKeysAct {keys} =
+shrinkRedeemer (Schema.UpdateKeysAct keys) =
   Schema.UpdateKeysAct <$> shrinkList (const []) keys
 
 cycled50 :: [a] -> [a]
@@ -321,7 +329,7 @@ testProperty desc currentSignatories newSignatories knownSignatories =
     grade _datum Schema.UseSignaturesAct {} _value = Good
     grade
       Schema.MajorityMultiSignDatum {signers}
-      Schema.UpdateKeysAct {keys}
+      (Schema.UpdateKeysAct keys)
       _value
         | let newKeys = keys \\ signers
           , newKeys `subset` currentSignatories =
@@ -333,7 +341,7 @@ testProperty desc currentSignatories newSignatories knownSignatories =
       where
         pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
           Just Schema.UseSignaturesAct -> paysSelf val datum
-          Just Schema.UpdateKeysAct {keys} ->
+          Just (Schema.UpdateKeysAct keys) ->
             paysSelf val (Schema.MajorityMultiSignDatum keys)
           Nothing -> error "Unexpected redeemer type"
     intersection xs = nub . filter (`elem` xs)

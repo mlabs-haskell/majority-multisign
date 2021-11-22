@@ -42,6 +42,8 @@ source-repository-package
   location: https://github.com/Liqwid-Labs/plutus-extra
   tag: a6130040b51b7ac99e85d24e39edce2aca3f7df5
   subdir:
+    plutus-golden
+    plutus-laws
     plutus-numeric
     plutus-pretty
     tasty-plutus

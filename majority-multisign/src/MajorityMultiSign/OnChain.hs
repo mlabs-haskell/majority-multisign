@@ -13,24 +13,26 @@ module MajorityMultiSign.OnChain (
 ) where
 
 import Data.List.Extra (firstJust)
-import Ledger (Address, Datum (..), PubKeyHash, ScriptContext (..), txSignedBy)
+import Ledger (Address, Datum (Datum), PubKeyHash, ScriptContext (scriptContextTxInfo), txSignedBy)
 import Ledger qualified
 import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Schema (
   MajorityMultiSign,
-  MajorityMultiSignDatum (..),
-  MajorityMultiSignIdentifier (..),
-  MajorityMultiSignRedeemer (..),
-  MajorityMultiSignValidatorParams (..),
+  MajorityMultiSignDatum (MajorityMultiSignDatum, signers),
+  MajorityMultiSignIdentifier (MajorityMultiSignIdentifier, asset),
+  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
+  MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
   getMinSigners,
+  maximumSigners,
+  naturalLength,
  )
-import Plutus.V1.Ledger.Api (TxOut (..))
-import Plutus.V1.Ledger.Contexts (TxInInfo (..), TxInfo (..), findDatumHash)
+import Plutus.V1.Ledger.Api (TxOut (txOutDatumHash, txOutValue))
+import Plutus.V1.Ledger.Contexts (TxInInfo (txInInfoResolved), TxInfo (txInfoInputs), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
-import PlutusTx.Builtins (greaterThanEqualsInteger)
-import PlutusTx.Prelude hiding (fromInteger, round, take)
+import PlutusTx.Natural (Natural)
+import PlutusTx.Prelude
 
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
@@ -42,6 +44,7 @@ mkValidator ::
 mkValidator params dat red ctx =
   hasCorrectToken params ctx (getExpectedDatum red dat)
     && isSufficientlySigned red dat ctx
+    && isUnderSizeLimit red dat
 
 {-# INLINEABLE removeSigners #-}
 removeSigners :: [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
@@ -53,13 +56,13 @@ removeSigners (x : xs) ys = if x `elem` ys then removeSigners xs ys else x : rem
 {-# INLINEABLE getExpectedDatum #-}
 getExpectedDatum :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> MajorityMultiSignDatum
 getExpectedDatum UseSignaturesAct datum = datum
-getExpectedDatum UpdateKeysAct {keys} datum = datum {signers = keys}
+getExpectedDatum (UpdateKeysAct keys) datum = datum {signers = keys}
 
 -- | Checks if, when setting new signatures, all new keys have signed the transaction
 {-# INLINEABLE hasNewSignatures #-}
 hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 hasNewSignatures UseSignaturesAct _ _ = True
-hasNewSignatures UpdateKeysAct {keys} MajorityMultiSignDatum {signers} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
+hasNewSignatures (UpdateKeysAct keys) MajorityMultiSignDatum {signers} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
 
 -- | Checks the script has the correct token (containing the asset we want), forwards it to the right place, and has the datum we expect
 {-# INLINEABLE hasCorrectToken #-}
@@ -96,14 +99,23 @@ checkMultisigned MajorityMultiSignIdentifier {asset} ctx =
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
-  traceIfFalse "Not enough signatures" (length signersPresent `greaterThanEqualsInteger` minSigners)
+  traceIfFalse "Not enough signatures" (naturalLength signersPresent >= minSigners)
     && traceIfFalse "Missing signatures from new keys" (hasNewSignatures red dat ctx)
   where
     signersPresent, signersUnique :: [PubKeyHash]
     signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signersUnique
     signersUnique = nub signers
-    minSigners :: Integer
+    minSigners :: Natural
     minSigners = getMinSigners signersUnique
+
+-- | Checks the validator datum fits under the size limit
+{-# INLINEABLE isUnderSizeLimit #-}
+isUnderSizeLimit :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> Bool
+isUnderSizeLimit UseSignaturesAct MajorityMultiSignDatum {signers} =
+  traceIfFalse "Datum too large" (naturalLength signers <= maximumSigners)
+isUnderSizeLimit (UpdateKeysAct keys) MajorityMultiSignDatum {signers} =
+  traceIfFalse "Datum too large" (naturalLength signers <= maximumSigners)
+    && traceIfFalse "Redeemer too large" (naturalLength keys <= maximumSigners)
 
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =

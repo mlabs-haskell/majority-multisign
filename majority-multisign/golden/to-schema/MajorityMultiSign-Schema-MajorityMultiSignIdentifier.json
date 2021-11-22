@@ -1,0 +1,21 @@
+{
+    "required": [
+        "asset"
+    ],
+    "properties": {
+        "asset": {
+            "minItems": 2,
+            "items": [
+                {
+                    "$ref": "#/components/schemas/Bytes"
+                },
+                {
+                    "$ref": "#/components/schemas/Bytes"
+                }
+            ],
+            "type": "array",
+            "maxItems": 2
+        }
+    },
+    "type": "object"
+}

@@ -15,7 +15,7 @@ import Data.Bifunctor (bimap)
 import Data.Kind (Type)
 import Data.List ((\\))
 import Data.Map qualified as Map
-import Data.Monoid (Last (..))
+import Data.Monoid (Last (Last))
 import Data.Row (Row)
 import Data.Text (Text)
 import Data.Void (Void)
@@ -45,18 +45,20 @@ import MajorityMultiSign.OnChain (
   validatorHashFromIdentifier,
  )
 import MajorityMultiSign.Schema (
-  MajorityMultiSignDatum (..),
-  MajorityMultiSignIdentifier (..),
-  MajorityMultiSignRedeemer (..),
+  MajorityMultiSignDatum (MajorityMultiSignDatum),
+  MajorityMultiSignIdentifier,
+  MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
   MajorityMultiSignSchema,
-  MajorityMultiSignValidatorParams (..),
-  SetSignaturesParams (..),
+  MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams),
+  SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
+  maximumSigners,
+  naturalLength,
  )
 import Playground.Contract (Tx)
 import Plutus.Contract (
   Contract,
-  ContractError (..),
+  ContractError (OtherError),
   awaitTxConfirmed,
   ownPubKey,
   submitTxConstraintsWith,
@@ -65,11 +67,11 @@ import Plutus.Contract (
   utxosAt,
  )
 import Plutus.Contract.Types (mapError)
-import Plutus.Contracts.Currency (CurrencyError (..), currencySymbol, mintContract)
+import Plutus.Contracts.Currency (CurrencyError (CurContractError), currencySymbol, mintContract)
 import Plutus.V1.Ledger.Api (
-  Datum (..),
+  Datum (Datum, getDatum),
   PubKeyHash,
-  Redeemer (..),
+  Redeemer (Redeemer),
   ToData,
   fromBuiltinData,
  )
@@ -110,7 +112,7 @@ initialize dat = do
  TODO: Optimise this, there is no need to generate all subsets and filter.
 -}
 getValidSignSets :: [PubKeyHash] -> [[PubKeyHash]]
-getValidSignSets ps = filter ((== minSigCount) . length) $ subsequences ps
+getValidSignSets ps = filter ((== minSigCount) . naturalLength) $ subsequences ps
   where
     minSigCount = getMinSigners ps
 
@@ -152,7 +154,10 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
           <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (assetClassValue mms.asset 1)
 
-  unless (sufficientPubKeys pubKeys [] keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
+  unless (sufficientPubKeys pubKeys [] keyOptions) $
+    throwError $ OtherError "Insufficient pub keys given"
+  unless (naturalLength pubKeys <= maximumSigners) $
+    throwError $ OtherError "Too many signers given"
 
   submitTxConstraintsWith @Any lookups' tx'
 
@@ -188,7 +193,10 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
           <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (assetClassValue mmsIdentifier.asset 1)
 
-  unless (sufficientPubKeys pubKeys newKeysDiff keyOptions) $ throwError $ OtherError "Insufficient pub keys given"
+  unless (sufficientPubKeys pubKeys newKeysDiff keyOptions) $
+    throwError $ OtherError "Insufficient pub keys given"
+  unless (naturalLength newKeys <= maximumSigners) $
+    throwError $ OtherError "Too many new signers given"
 
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
   void $ awaitTxConfirmed $ txId ledgerTx
