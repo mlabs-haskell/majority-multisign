@@ -65,7 +65,7 @@ maximumSigners = [nat| 10 |]
 
 -- | A count of the items in a `Foldable` is always 'Natural'.
 naturalLength :: Foldable t => t a -> Natural
-naturalLength = getSum . foldMap (Sum . const [nat| 1 |])
+naturalLength = getSum . foldMap (Sum . const one)
 
 {-# INLINEABLE getMinSigners #-}
 
