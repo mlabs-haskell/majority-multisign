@@ -44,6 +44,7 @@ source-repository-package
     plutus-laws
     plutus-numeric
     plutus-pretty
+    quickcheck-plutus-instances
     tasty-plutus
 
 -- The following sections are copied from the 'plutus' repository cabal.project at the revision
