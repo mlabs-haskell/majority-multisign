@@ -133,8 +133,11 @@ addressValueOptions walletAllocs validatorAllocs = Emulator.EmulatorConfig (Righ
 -- and remove this definition (https://github.com/input-output-hk/plutus-apps/pull/105).
 walletPubKey :: Test.Wallet -> Ledger.PubKey
 walletPubKey w =
-  CardanoWallet.pubKey
-  $ fromMaybe (P.error $ "Wallet.Emulator.Wallet.walletPubKey: Wallet "
-                <> P.show w
-                <> " is not a mock wallet")
-  $ walletMockWallet w
+  CardanoWallet.pubKey $
+    fromMaybe
+      ( P.error $
+          "Wallet.Emulator.Wallet.walletPubKey: Wallet "
+            <> P.show w
+            <> " is not a mock wallet"
+      )
+      $ walletMockWallet w
