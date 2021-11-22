@@ -24,7 +24,11 @@ import Plutus.V1.Ledger.Tx (Tx (txData, txMint, txOutputs))
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx qualified
 import PlutusTx.Prelude
-import Spec.IntegrationWrappers (IntegrationParams (IntegrationParams), bypassContract, correctContract)
+import Spec.IntegrationWrappers (
+  IntegrationParams (IntegrationParams, mmsId, ownPubKey, pubKeys),
+  bypassContract,
+  correctContract,
+ )
 import Test.Tasty (TestTree, testGroup)
 import Wallet.Emulator.Error (WalletAPIError (ValidationError))
 import Prelude qualified as P
@@ -79,7 +83,12 @@ exampleMMS :: MajorityMultiSignIdentifier
 exampleMMS = MajorityMultiSignIdentifier multisignTokenAssetClass
 
 integrationParams :: IntegrationParams
-integrationParams = IntegrationParams exampleMMS [Test.walletPubKey signer]
+integrationParams =
+  IntegrationParams
+    { mmsId = exampleMMS
+    , ownPubKey = Test.walletPubKey signer
+    , pubKeys = [Test.walletPubKey signer]
+    }
 
 multisignExampleDatum :: Datum
 multisignExampleDatum = Datum $ PlutusTx.toBuiltinData $ MajorityMultiSignDatum [signerPkh]

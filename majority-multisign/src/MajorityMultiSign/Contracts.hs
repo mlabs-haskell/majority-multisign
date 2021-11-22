@@ -60,7 +60,6 @@ import Plutus.Contract (
   Contract,
   ContractError (OtherError),
   awaitTxConfirmed,
-  ownPubKey,
   submitTxConstraintsWith,
   tell,
   throwError,
@@ -90,9 +89,11 @@ unwrapCurErr (CurContractError c) = c
 {- | Mints the oneshot for a validator, sends it to the precalculated validator address with the correct datum.
   Writes the asset to observable state
 -}
-initialize :: MajorityMultiSignDatum -> Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
-initialize dat = do
-  pkh <- pubKeyHash <$> ownPubKey
+initialize ::
+  PubKeyHash ->
+  MajorityMultiSignDatum ->
+  Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
+initialize pkh dat = do
   oneshotCS <- mapError unwrapCurErr $ currencySymbol <$> mintContract pkh [(multiSignTokenName, 1)]
   let oneshotAsset :: AssetClass
       oneshotAsset = assetClass oneshotCS multiSignTokenName

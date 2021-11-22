@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Spec.IntegrationWrappers (
-  IntegrationParams (..),
+  IntegrationParams (IntegrationParams, mmsId, ownPubKey, pubKeys),
   bypassContract,
   correctContract,
   mintingPolicy,
@@ -21,20 +21,21 @@ import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Contracts (submitSignedTxConstraintsWith)
 import MajorityMultiSign.OnChain (checkMultisigned)
 import MajorityMultiSign.Schema
-import Plutus.Contract (Contract, ContractError (..), awaitTxConfirmed, ownPubKey, submitTxConstraintsWith)
+import Plutus.Contract (Contract, ContractError (..), awaitTxConfirmed, submitTxConstraintsWith)
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx qualified
 import PlutusTx.Prelude
 
 data IntegrationParams = IntegrationParams
   { mmsId :: MajorityMultiSignIdentifier
+  , ownPubKey :: PubKey
   , pubKeys :: [PubKey]
   }
 
 correctContract :: IntegrationParams -> Contract w s ContractError ()
-correctContract IntegrationParams {mmsId, pubKeys} = do
-  pkh <- Ledger.pubKeyHash <$> ownPubKey
-  let value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
+correctContract IntegrationParams {mmsId, ownPubKey, pubKeys} = do
+  let pkh = Ledger.pubKeyHash ownPubKey
+      value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
       tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh value
   ledgerTx <- submitSignedTxConstraintsWith @Void mmsId pubKeys lookups tx
@@ -42,9 +43,9 @@ correctContract IntegrationParams {mmsId, pubKeys} = do
 
 -- | Attempts to mint a value without invoking the multisign contract at all - should always fail
 bypassContract :: IntegrationParams -> Contract w s ContractError ()
-bypassContract IntegrationParams {mmsId} = do
-  pkh <- Ledger.pubKeyHash <$> ownPubKey
-  let value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
+bypassContract IntegrationParams {mmsId, ownPubKey} = do
+  let pkh = Ledger.pubKeyHash ownPubKey
+      value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
       tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh value
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
