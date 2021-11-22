@@ -209,10 +209,22 @@
         "homepage": "",
         "owner": "input-output-hk",
         "repo": "plutus",
-        "rev": "58c093a49eb7a369865e361179d649264fc817a4",
-        "sha256": "156lprrnz4hivagzsbsw3dfqsdpdrvkf2qijf7n0jh9xx2g21pz4",
+        "rev": "3f089ccf0ca746b399c99afe51e063b0640af547",
+        "sha256": "1nx8xmdgwmnsla4qg4k67f5md8vm3p1p9i25ndalrqdg40z90486",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/plutus/archive/58c093a49eb7a369865e361179d649264fc817a4.tar.gz",
+        "url": "https://github.com/input-output-hk/plutus/archive/3f089ccf0ca746b399c99afe51e063b0640af547.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "plutus-apps": {
+        "branch": "master",
+        "description": "The Plutus Application Framework",
+        "homepage": "",
+        "owner": "input-output-hk",
+        "repo": "plutus-apps",
+        "rev": "7f7aca8500105d3a0830b40627f1821c9ac7b58e",
+        "sha256": "1zn8mhwdwk5ya0i4x8pj906glica62y5pi95l26nav4xldwj8zv0",
+        "type": "tarball",
+        "url": "https://github.com/input-output-hk/plutus-apps/archive/7f7aca8500105d3a0830b40627f1821c9ac7b58e.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus-extra": {
@@ -221,10 +233,10 @@
         "homepage": "",
         "owner": "Liqwid-Labs",
         "repo": "plutus-extra",
-        "rev": "a6130040b51b7ac99e85d24e39edce2aca3f7df5",
-        "sha256": "0i35hjd2120jzra2hfwfpfl5bqbnc4nhib1qxgba6kpln0fcj4rc",
+        "rev": "43e46741c588d46e8ee317fa84be4824c0024c68",
+        "sha256": "039ilzczhfwf5cxixy8c9hmyprv6g07qv2mbxqiy4851li81qgb7",
         "type": "tarball",
-        "url": "https://github.com/Liqwid-Labs/plutus-extra/archive/a6130040b51b7ac99e85d24e39edce2aca3f7df5.tar.gz",
+        "url": "https://github.com/Liqwid-Labs/plutus-extra/archive/43e46741c588d46e8ee317fa84be4824c0024c68.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "purescript-bridge": {

@@ -39,7 +39,7 @@ correctContract IntegrationParams {mmsId, ownPubKey, pubKeys} = do
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
       tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh value
   ledgerTx <- submitSignedTxConstraintsWith @Void mmsId pubKeys lookups tx
-  void $ awaitTxConfirmed $ Ledger.txId ledgerTx
+  void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 
 -- | Attempts to mint a value without invoking the multisign contract at all - should always fail
 bypassContract :: IntegrationParams -> Contract w s ContractError ()
@@ -49,7 +49,7 @@ bypassContract IntegrationParams {mmsId, ownPubKey} = do
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
       tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh value
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
-  void $ awaitTxConfirmed $ Ledger.txId ledgerTx
+  void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 
 {-# INLINEABLE mkPolicy #-}
 mkPolicy ::
