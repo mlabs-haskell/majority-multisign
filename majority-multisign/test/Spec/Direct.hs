@@ -20,7 +20,7 @@ import Plutus.V1.Ledger.Scripts (Validator (getValidator), mkValidatorScript)
 import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
 import PlutusTx.Natural (Natural, nat)
-import PlutusTx.Prelude (pred)
+import PlutusTx.Prelude (pred, zero)
 import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Plutus.Context (
@@ -195,9 +195,10 @@ arbitraryDatumFrom sigs =
     <$> sublistOf sigs
 
 takeNatural :: Natural -> [a] -> [a]
-takeNatural [nat| 0 |] _ = []
 takeNatural _ [] = []
-takeNatural n (x : xs) = x : takeNatural (pred n) xs
+takeNatural n (x : xs)
+  | n == zero = []
+  | otherwise = x : takeNatural (pred n) xs
 
 shrinkDatum :: Schema.MajorityMultiSignDatum -> [Schema.MajorityMultiSignDatum]
 shrinkDatum Schema.MajorityMultiSignDatum {signers} =
