@@ -3,5 +3,4 @@
   plutus = import sources.plutus { };
   plutus-apps = import sources.plutus-apps { };
   pkgs = plutus.pkgs;
-  pab = import ./pab.nix { inherit plutus; };
 }
