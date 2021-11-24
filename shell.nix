@@ -1,5 +1,5 @@
 with import ./nix { };
-(plutus.plutus.haskell.project.shellFor (pab.env_variables // {
+(plutus-apps.plutus-apps.haskell.project.shellFor {
 
   # Select packages who's dependencies should be added to the shell env
   packages = ps: [ ];
@@ -8,12 +8,10 @@ with import ./nix { };
   # Should try and get the extra cardano dependencies in here...
   additional = ps:
     with ps; [
-      plutus-pab
       plutus-tx
       plutus-tx-plugin
       plutus-contract
       plutus-ledger-api
-      pab.plutus_ledger_with_docs
       plutus-core
       playground-common
       prettyprinter-configurable
@@ -47,16 +45,13 @@ with import ./nix { };
       # Graphviz Diagrams for documentation
       graphviz
 
-      ### Pab
-      pab.plutus_pab_client
-
       ### Example contracts
-      plutus.plutus-pab-examples
+      plutus-apps.plutus-pab-examples
 
-    ] ++ (builtins.attrValues pab.plutus_pab_exes);
+    ];
 
-  buildInputs = (with plutus.pkgs;
+  buildInputs = (with plutus-apps.pkgs;
     [ zlib pkg-config libsodium-vrf systemd ]
     ++ (lib.optionals (!stdenv.isDarwin) [ R ]));
 
-}))
+})

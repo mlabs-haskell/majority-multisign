@@ -8,6 +8,7 @@ import Data.Map qualified as Map
 import Data.Text (Text)
 import Ledger (AssetClass, Datum (Datum), PubKeyHash, Value)
 import Ledger qualified
+import Ledger.CardanoWallet qualified as CardanoWallet
 import Ledger.Scripts qualified as Scripts
 import MajorityMultiSign.Contracts (multiSignTokenName)
 import MajorityMultiSign.OnChain (validatorHashFromIdentifier)
@@ -24,9 +25,14 @@ import Plutus.V1.Ledger.Tx (Tx (txData, txMint, txOutputs))
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue)
 import PlutusTx qualified
 import PlutusTx.Prelude
-import Spec.IntegrationWrappers (IntegrationParams (IntegrationParams), bypassContract, correctContract)
+import Spec.IntegrationWrappers (
+  IntegrationParams (IntegrationParams, mmsId, ownPubKey, pubKeys),
+  bypassContract,
+  correctContract,
+ )
 import Test.Tasty (TestTree, testGroup)
 import Wallet.Emulator.Error (WalletAPIError (ValidationError))
+import Wallet.Emulator.Wallet (walletMockWallet)
 import Prelude qualified as P
 
 -- Since we can't test multisignature with emulator trace, we'll be using a single signer
@@ -37,7 +43,7 @@ nonSigner :: Test.Wallet
 nonSigner = Test.knownWallet 2
 
 signerPkh :: PubKeyHash
-signerPkh = Ledger.pubKeyHash $ Test.walletPubKey signer
+signerPkh = Test.walletPubKeyHash signer
 
 correctContract' :: Contract () Empty ContractError ()
 correctContract' = correctContract integrationParams
@@ -79,7 +85,12 @@ exampleMMS :: MajorityMultiSignIdentifier
 exampleMMS = MajorityMultiSignIdentifier multisignTokenAssetClass
 
 integrationParams :: IntegrationParams
-integrationParams = IntegrationParams exampleMMS [Test.walletPubKey signer]
+integrationParams =
+  IntegrationParams
+    { mmsId = exampleMMS
+    , ownPubKey = walletPubKey signer
+    , pubKeys = [walletPubKey signer]
+    }
 
 multisignExampleDatum :: Datum
 multisignExampleDatum = Datum $ PlutusTx.toBuiltinData $ MajorityMultiSignDatum [signerPkh]
@@ -117,3 +128,16 @@ addressValueOptions walletAllocs validatorAllocs = Emulator.EmulatorConfig (Righ
               (\(_, _, d) -> (Scripts.datumHash d, d)) <$> validatorAllocs
         , txMint = foldMap snd walletAllocs <> foldMap (\(_, v, _) -> v) validatorAllocs
         }
+
+-- TODO: Once walletPubKey is re-added to Plutus.Contract.Test import it thence
+-- and remove this definition (https://github.com/input-output-hk/plutus-apps/pull/105).
+walletPubKey :: Test.Wallet -> Ledger.PubKey
+walletPubKey w =
+  CardanoWallet.pubKey $
+    fromMaybe
+      ( P.error $
+          "Wallet.Emulator.Wallet.walletPubKey: Wallet "
+            <> P.show w
+            <> " is not a mock wallet"
+      )
+      $ walletMockWallet w

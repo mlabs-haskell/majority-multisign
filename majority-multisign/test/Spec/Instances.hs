@@ -2,26 +2,18 @@
 
 module Spec.Instances () where
 
-import Data.ByteString (ByteString)
-import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
 import MajorityMultiSign.Schema qualified as Schema
-import Plutus.V1.Ledger.Api (BuiltinByteString, toBuiltin)
-import Plutus.V1.Ledger.Value (
-  AssetClass,
-  CurrencySymbol (CurrencySymbol),
-  TokenName (TokenName),
-  assetClass,
- )
-import Test.QuickCheck (Arbitrary (arbitrary), listOf, oneof)
-import Test.QuickCheck.Arbitrary.Generic (genericArbitrary)
+import Plutus.V1.Ledger.Value (AssetClass, assetClass)
+import Test.QuickCheck (Arbitrary (arbitrary), Gen, listOf, oneof)
 import Test.QuickCheck.Instances ()
+import Test.QuickCheck.Plutus.Instances ()
 import Prelude (Applicative (pure, (<*>)), (<$>))
 
 instance Arbitrary Schema.MajorityMultiSignDatum where
   arbitrary = Schema.MajorityMultiSignDatum <$> listOf arbitrary
 
 instance Arbitrary Schema.MajorityMultiSignIdentifier where
-  arbitrary = Schema.MajorityMultiSignIdentifier <$> arbitrary
+  arbitrary = Schema.MajorityMultiSignIdentifier <$> arbitraryAssetClass
 
 instance Arbitrary Schema.MajorityMultiSignRedeemer where
   arbitrary =
@@ -35,20 +27,5 @@ instance Arbitrary Schema.SetSignaturesParams where
     Schema.SetSignaturesParams
       <$> arbitrary <*> listOf arbitrary <*> listOf arbitrary
 
-instance Arbitrary PubKeyHash where
-  arbitrary = pubKeyHash <$> arbitrary
-
-instance Arbitrary PubKey where
-  arbitrary = PubKey <$> genericArbitrary
-
-instance Arbitrary BuiltinByteString where
-  arbitrary = toBuiltin <$> arbitrary @ByteString
-
-instance Arbitrary AssetClass where
-  arbitrary = assetClass <$> arbitrary <*> arbitrary
-
-instance Arbitrary CurrencySymbol where
-  arbitrary = CurrencySymbol <$> arbitrary
-
-instance Arbitrary TokenName where
-  arbitrary = TokenName <$> arbitrary
+arbitraryAssetClass :: Gen AssetClass
+arbitraryAssetClass = assetClass <$> arbitrary <*> arbitrary

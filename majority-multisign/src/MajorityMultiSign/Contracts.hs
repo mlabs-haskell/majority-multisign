@@ -21,11 +21,11 @@ import Data.Text (Text)
 import Data.Void (Void)
 import Ledger (
   AssetClass,
+  CardanoTx,
   ChainIndexTxOut,
   TokenName,
   TxOutRef,
   pubKeyHash,
-  txId,
   validatorHash,
  )
 import Ledger qualified
@@ -55,12 +55,10 @@ import MajorityMultiSign.Schema (
   maximumSigners,
   naturalLength,
  )
-import Playground.Contract (Tx)
 import Plutus.Contract (
   Contract,
   ContractError (OtherError),
   awaitTxConfirmed,
-  ownPubKey,
   submitTxConstraintsWith,
   tell,
   throwError,
@@ -90,9 +88,11 @@ unwrapCurErr (CurContractError c) = c
 {- | Mints the oneshot for a validator, sends it to the precalculated validator address with the correct datum.
   Writes the asset to observable state
 -}
-initialize :: MajorityMultiSignDatum -> Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
-initialize dat = do
-  pkh <- pubKeyHash <$> ownPubKey
+initialize ::
+  PubKeyHash ->
+  MajorityMultiSignDatum ->
+  Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
+initialize pkh dat = do
   oneshotCS <- mapError unwrapCurErr $ currencySymbol <$> mintContract pkh [(multiSignTokenName, 1)]
   let oneshotAsset :: AssetClass
       oneshotAsset = assetClass oneshotCS multiSignTokenName
@@ -106,7 +106,7 @@ initialize dat = do
           (assetClassValue oneshotAsset 1)
   tell $ Last $ Just oneshotAsset
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
-  void $ awaitTxConfirmed $ txId ledgerTx
+  void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 
 {- | Gets all minimal sets of keys that would pass validation. For a 5 key system, this will generate 10 sets.
  TODO: Optimise this, there is no need to generate all subsets and filter.
@@ -136,7 +136,7 @@ submitSignedTxConstraintsWith ::
   [PubKey] ->
   ScriptLookups Any ->
   TxConstraints (RedeemerType a) (DatumType a) ->
-  Contract w s ContractError Tx
+  Contract w s ContractError CardanoTx
 submitSignedTxConstraintsWith mms pubKeys lookups tx = do
   (txOutData, datum, signerList) <- findUTxO mms
   let keyOptions :: [[PubKeyHash]]
@@ -199,7 +199,7 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
     throwError $ OtherError "Too many new signers given"
 
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
-  void $ awaitTxConfirmed $ txId ledgerTx
+  void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 
 {- | Finds the UTxO in a majority multisign containing the asset,
  and returns it, its datum and the signer list

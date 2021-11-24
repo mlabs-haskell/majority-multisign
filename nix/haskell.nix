@@ -55,16 +55,20 @@ in pkgs.haskell-nix.cabalProject rec {
     "https://github.com/input-output-hk/plutus.git"."${sources.plutus.rev}" =
       sources.plutus.sha256;
 
+    # input-output-hk/plutus-apps
+    "https://github.com/input-output-hk/plutus-apps.git"."${sources.plutus-apps.rev}" =
+      sources.plutus-apps.sha256;
+
     # Quid2/flat
     "https://github.com/Quid2/flat.git"."${sources.flat.rev}" =
       sources.flat.sha256;
 
-    # shmish111/purescript-bridge
-    "https://github.com/shmish111/purescript-bridge.git"."${sources.purescript-bridge.rev}" =
+    # input-output-hk/purescript-bridge
+    "https://github.com/input-output-hk/purescript-bridge.git"."${sources.purescript-bridge.rev}" =
       sources.purescript-bridge.sha256;
 
-    # shmish111/servant-purescript
-    "https://github.com/shmish111/servant-purescript.git"."${sources.servant-purescript.rev}" =
+    # input-output-hk/servant-purescript
+    "https://github.com/input-output-hk/servant-purescript.git"."${sources.servant-purescript.rev}" =
       sources.servant-purescript.sha256;
 
     # input-output-hk/cardano-base
@@ -76,11 +80,11 @@ in pkgs.haskell-nix.cabalProject rec {
       sources.cardano-crypto.sha256;
 
     # input-output-hk/cardano-ledger-specs
-    "https://github.com/raduom/cardano-ledger-specs"."${sources.cardano-ledger-specs.rev}" =
+    "https://github.com/input-output-hk/cardano-ledger-specs"."${sources.cardano-ledger-specs.rev}" =
       sources.cardano-ledger-specs.sha256;
 
-    # input-output-hk/cardano-wallet
-    "https://github.com/input-output-hk/cardano-wallet"."${sources.cardano-wallet.rev}" =
+    # j-mueller/cardano-wallet
+    "https://github.com/j-mueller/cardano-wallet"."${sources.cardano-wallet.rev}" =
       sources.cardano-wallet.sha256;
 
     # input-output-hk/cardano-prelude
