@@ -48,6 +48,9 @@ signerPkh = Test.walletPubKeyHash signer
 correctContract' :: Contract () Empty ContractError ()
 correctContract' = correctContract integrationParams
 
+correctContract0 :: Contract () Empty ContractError ()
+correctContract0 = correctContract integrationParams{pubKeys= []}
+
 bypassContract' :: Contract () Empty ContractError ()
 bypassContract' = bypassContract integrationParams
 
@@ -64,15 +67,19 @@ tests :: TestTree
 tests =
   testGroup
     "Integration"
-    [ checkPredicateMMS
+    [ checkPredicateMMS [signerPkh]
         "Main multisign check"
         (Test.assertDone correctContract' (Emulator.walletInstanceTag signer) (const True) "Couldn't mint value")
         (traceWrapper correctContract')
-    , checkPredicateMMS
+    , checkPredicateMMS []
+        "Zero signers check"
+        (Test.assertDone (correctContract0) (Emulator.walletInstanceTag signer) (const True) "Couldn't mint value")
+        (traceWrapper correctContract0)
+    , checkPredicateMMS [signerPkh]
         "Invalid multisign check"
         (Test.assertContractError bypassContract' (Emulator.walletInstanceTag signer) (P.== expectedBypassError) "Minted value incorrectly")
         (traceWrapper bypassContract')
-    , checkPredicateMMS
+    , checkPredicateMMS [signerPkh]
         "Missing signer check"
         (Test.assertContractError correctContract' (Emulator.walletInstanceTag nonSigner) (P.== expectedUnsignedError) "Minted value incorrectly")
         (nonSignerTraceWrapper correctContract')
@@ -92,17 +99,17 @@ integrationParams =
     , pubKeys = [walletPubKey signer]
     }
 
-multisignExampleDatum :: Datum
-multisignExampleDatum = Datum $ PlutusTx.toBuiltinData $ MajorityMultiSignDatum [signerPkh]
+checkPredicateMMS :: [PubKeyHash] -> P.String -> Test.TracePredicate -> Trace.EmulatorTrace () -> TestTree
+checkPredicateMMS signers = Test.checkPredicateOptions $ Test.defaultCheckOptions & Test.emulatorConfig .~ emuConfig signers
 
-emuConfig :: Emulator.EmulatorConfig
-emuConfig =
+multisignExampleDatum :: [PubKeyHash] -> Datum
+multisignExampleDatum = Datum . PlutusTx.toBuiltinData . MajorityMultiSignDatum
+
+emuConfig :: [PubKeyHash] -> Emulator.EmulatorConfig
+emuConfig signers =
   addressValueOptions
     [(signerPkh, lovelaceValueOf 1_000_000)]
-    [(validatorHashFromIdentifier exampleMMS, assetClassValue multisignTokenAssetClass 1, multisignExampleDatum)]
-
-checkPredicateMMS :: P.String -> Test.TracePredicate -> Trace.EmulatorTrace () -> TestTree
-checkPredicateMMS = Test.checkPredicateOptions $ Test.defaultCheckOptions & Test.emulatorConfig .~ emuConfig
+    [(validatorHashFromIdentifier exampleMMS, assetClassValue multisignTokenAssetClass 1, multisignExampleDatum signers)]
 
 traceWrapper :: Contract () Empty ContractError () -> Trace.EmulatorTrace ()
 traceWrapper contract = do

@@ -121,7 +121,6 @@ makeSigningConstraint ::
   forall (a :: Type).
   [[PubKeyHash]] ->
   TxConstraints (RedeemerType a) (DatumType a)
-makeSigningConstraint [[]] = mempty -- limited temporary workaround for Plutus bug #101
 makeSigningConstraint keyOptions = Constraints.mustSatisfyAnyOf $ foldMap Constraints.mustBeSignedBy <$> keyOptions
 
 {- | Wrapper for submitTxConstraintsWith that adds the lookups and constraints for using a majority multisign validator in the transaction
