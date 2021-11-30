@@ -2,7 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module MajorityMultiSign.Contracts (
-  getValidSignSets,
+  combinations,
   initialize,
   multiSignTokenName,
   setSignatures,
@@ -75,6 +75,8 @@ import Plutus.V1.Ledger.Api (
  )
 import Plutus.V1.Ledger.Value (assetClass, assetClassValue, assetClassValueOf)
 import PlutusTx (toBuiltinData)
+import PlutusTx.Natural (Natural)
+import PlutusTx.Numeric.Extra ((^-))
 import PlutusTx.Prelude hiding (foldMap, (<>))
 
 -- | Token name for the MajorityMultiSignDatum
@@ -108,20 +110,20 @@ initialize pkh dat = do
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 
-{- | Gets all minimal sets of keys that would pass validation. For a 5 key system, this will generate 10 sets.
+{- | Gets all possible [combinations](https://byjus.com/maths/permutation-and-combination/)
+ of keys of exactly the given length.
  TODO: Optimise this, there is no need to generate all subsets and filter.
 -}
-getValidSignSets :: [PubKeyHash] -> [[PubKeyHash]]
-getValidSignSets ps = filter ((== minSigCount) . naturalLength) $ subsequences ps
-  where
-    minSigCount = getMinSigners ps
+combinations :: Natural -> [PubKeyHash] -> [[PubKeyHash]]
+combinations minSigCount ps = filter ((== minSigCount) . naturalLength) $ subsequences ps
 
--- | Creates the constraint for signing, this scales as `getValidSignSets` does
+-- | Creates the constraint for signing, this scales as `combinations` does.
 makeSigningConstraint ::
   forall (a :: Type).
   [[PubKeyHash]] ->
   TxConstraints (RedeemerType a) (DatumType a)
-makeSigningConstraint keyOptions = Constraints.mustSatisfyAnyOf $ foldMap Constraints.mustBeSignedBy <$> keyOptions
+makeSigningConstraint =
+  foldMap (Constraints.mustSatisfyAnyOf . fmap Constraints.mustBeSignedBy)
 
 {- | Wrapper for submitTxConstraintsWith that adds the lookups and constraints for using a majority multisign validator in the transaction
   Due to limitations of plutus and submitTxConstraintsWith, the lookups passed here must be generic, typed validators cannot be passed in directly,
@@ -139,8 +141,11 @@ submitSignedTxConstraintsWith ::
   Contract w s ContractError CardanoTx
 submitSignedTxConstraintsWith mms pubKeys lookups tx = do
   (txOutData, datum, signerList) <- findUTxO mms
-  let keyOptions :: [[PubKeyHash]]
-      keyOptions = getValidSignSets signerList
+  let keyOptions, missingKeyOptions :: [[PubKeyHash]]
+      keyOptions = combinations (getMinSigners signerList) signerList
+      missingKeyOptions = combinations maxMissingKeys signerList
+      maxMissingKeys :: Natural
+      maxMissingKeys = succ (naturalLength signerList ^- getMinSigners signerList)
       lookups' :: ScriptLookups Any
       lookups' =
         lookups
@@ -150,7 +155,7 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
       tx' :: TxConstraints BuiltinData BuiltinData
       tx' =
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
-          <> makeSigningConstraint @Any keyOptions
+          <> makeSigningConstraint @Any missingKeyOptions
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
           <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (assetClassValue mms.asset 1)
 
@@ -177,8 +182,11 @@ setSignatures ::
 setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
   (txOutData, _, signerList) <- findUTxO mmsIdentifier
 
-  let keyOptions :: [[PubKeyHash]]
-      keyOptions = getValidSignSets signerList
+  let keyOptions, missingKeyOptions :: [[PubKeyHash]]
+      keyOptions = combinations (getMinSigners signerList) signerList
+      missingKeyOptions = combinations maxMissingKeys signerList
+      maxMissingKeys :: Natural
+      maxMissingKeys = succ (naturalLength signerList ^- getMinSigners signerList)
       datum :: Datum
       datum = Datum $ PlutusTx.toBuiltinData $ MajorityMultiSignDatum newKeys
       newKeysDiff :: [PubKeyHash]
@@ -188,7 +196,7 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
           <> Constraints.unspentOutputs (uncurry Map.singleton txOutData)
           <> foldMap Constraints.pubKey pubKeys
       tx =
-        makeSigningConstraint @Any keyOptions
+        makeSigningConstraint @Any missingKeyOptions
           <> foldMap Constraints.mustBeSignedBy newKeysDiff
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
           <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (assetClassValue mmsIdentifier.asset 1)
