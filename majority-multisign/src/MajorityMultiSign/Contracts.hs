@@ -122,8 +122,8 @@ makeSigningConstraint ::
   forall (a :: Type).
   [[PubKeyHash]] ->
   TxConstraints (RedeemerType a) (DatumType a)
-makeSigningConstraint missingKeyOptions =
-  foldMap (Constraints.mustSatisfyAnyOf . fmap Constraints.mustBeSignedBy) missingKeyOptions
+makeSigningConstraint =
+  foldMap (Constraints.mustSatisfyAnyOf . fmap Constraints.mustBeSignedBy)
 
 {- | Wrapper for submitTxConstraintsWith that adds the lookups and constraints for using a majority multisign validator in the transaction
   Due to limitations of plutus and submitTxConstraintsWith, the lookups passed here must be generic, typed validators cannot be passed in directly,
