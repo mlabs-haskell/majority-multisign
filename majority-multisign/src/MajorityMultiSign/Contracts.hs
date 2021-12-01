@@ -5,6 +5,7 @@ module MajorityMultiSign.Contracts (
   combinations,
   initialize,
   multiSignTokenName,
+  prepareTxForSigning,
   setSignatures,
   submitSignedTxConstraintsWith,
 ) where
@@ -29,7 +30,7 @@ import Ledger (
   validatorHash,
  )
 import Ledger qualified
-import Ledger.Constraints (ScriptLookups, TxConstraints)
+import Ledger.Constraints (ScriptLookups, TxConstraints, UnbalancedTx)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.TxConstraints qualified as Constraints
 import Ledger.Crypto (PubKey)
@@ -59,6 +60,7 @@ import Plutus.Contract (
   Contract,
   ContractError (OtherError),
   awaitTxConfirmed,
+  mkTxConstraints,
   submitTxConstraintsWith,
   tell,
   throwError,
@@ -117,7 +119,10 @@ initialize pkh dat = do
 combinations :: Natural -> [PubKeyHash] -> [[PubKeyHash]]
 combinations minSigCount ps = filter ((== minSigCount) . naturalLength) $ subsequences ps
 
--- | Creates the constraint for signing, this scales as `combinations` does.
+{- | Creates the constraint for signing, this scales as `combinations` does.
+ See https://github.com/mlabs-haskell/majority-multisign/issues/14 for the
+ reasoning behind the logic.
+-}
 makeSigningConstraint ::
   forall (a :: Type).
   [[PubKeyHash]] ->
@@ -165,6 +170,41 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
     throwError $ OtherError "Too many signers given"
 
   submitTxConstraintsWith @Any lookups' tx'
+
+{- | Prepares an unsigned transaction for using a majority multisign validator
+  in the transaction. Due to limitations of plutus and
+  submitTxConstraintsWith, the lookups passed here must be generic, typed
+  validators cannot be passed in directly, and must instead be converted to
+  normal validators first.
+-}
+prepareTxForSigning ::
+  forall (a :: Type) (w :: Type) (s :: Row Type).
+  ( ToData (RedeemerType a)
+  , ToData (DatumType a)
+  ) =>
+  MajorityMultiSignIdentifier ->
+  ScriptLookups Any ->
+  TxConstraints (RedeemerType a) (DatumType a) ->
+  Contract w s ContractError UnbalancedTx
+prepareTxForSigning mms lookups tx = do
+  (txOutData, datum, signerList) <- findUTxO mms
+  let missingKeyOptions :: [[PubKeyHash]]
+      missingKeyOptions = combinations maxMissingKeys signerList
+      maxMissingKeys :: Natural
+      maxMissingKeys = succ (naturalLength signerList ^- getMinSigners signerList)
+      lookups' :: ScriptLookups Any
+      lookups' =
+        lookups
+          <> Constraints.otherScript (validatorFromIdentifier mms)
+          <> Constraints.unspentOutputs (uncurry Map.singleton txOutData)
+      tx' :: TxConstraints BuiltinData BuiltinData
+      tx' =
+        bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
+          <> makeSigningConstraint @Any missingKeyOptions
+          <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
+          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (assetClassValue mms.asset 1)
+
+  mkTxConstraints @Any lookups' tx'
 
 subset :: forall (a :: Type). Eq a => [a] -> [a] -> Bool
 subset xs ys = all (`elem` ys) xs
