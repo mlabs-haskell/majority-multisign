@@ -5,6 +5,7 @@ module MajorityMultiSign.Contracts (
   combinations,
   initialize,
   multiSignTokenName,
+  prepareTxForSigning,
   setSignatures,
   submitSignedTxConstraintsWith,
 ) where
@@ -29,7 +30,7 @@ import Ledger (
   validatorHash,
  )
 import Ledger qualified
-import Ledger.Constraints (ScriptLookups, TxConstraints)
+import Ledger.Constraints (ScriptLookups, TxConstraints, UnbalancedTx)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.TxConstraints qualified as Constraints
 import Ledger.Crypto (PubKey)
@@ -59,7 +60,9 @@ import Plutus.Contract (
   Contract,
   ContractError (OtherError),
   awaitTxConfirmed,
+  mkTxConstraints,
   submitTxConstraintsWith,
+  submitUnbalancedTx,
   tell,
   throwError,
   utxosAt,
@@ -117,7 +120,18 @@ initialize pkh dat = do
 combinations :: Natural -> [PubKeyHash] -> [[PubKeyHash]]
 combinations minSigCount ps = filter ((== minSigCount) . naturalLength) $ subsequences ps
 
--- | Creates the constraint for signing, this scales as `combinations` does.
+-- | Returns all possible allowed combinations of keys and of missing keys.
+signerCombinations :: [PubKeyHash] -> ([[PubKeyHash]], [[PubKeyHash]])
+signerCombinations signerList = (keyOptions, missingKeyOptions)
+  where
+    keyOptions = combinations (getMinSigners signerList) signerList
+    missingKeyOptions = combinations maxMissingKeys signerList
+    maxMissingKeys = succ (naturalLength signerList ^- getMinSigners signerList)
+
+{- | Creates the constraint for signing, this scales as `combinations` does.
+ See https://github.com/mlabs-haskell/majority-multisign/issues/14 for the
+ reasoning behind the logic.
+-}
 makeSigningConstraint ::
   forall (a :: Type).
   [[PubKeyHash]] ->
@@ -140,18 +154,42 @@ submitSignedTxConstraintsWith ::
   TxConstraints (RedeemerType a) (DatumType a) ->
   Contract w s ContractError CardanoTx
 submitSignedTxConstraintsWith mms pubKeys lookups tx = do
+  (_, _, signerList) <- findUTxO mms
+  let (keyOptions, _) = signerCombinations signerList
+      lookups' :: ScriptLookups Any
+      lookups' = lookups <> foldMap Constraints.pubKey pubKeys
+
+  unless (sufficientPubKeys pubKeys [] keyOptions) $
+    throwError $ OtherError "Insufficient pub keys given"
+  unless (naturalLength pubKeys <= maximumSigners) $
+    throwError $ OtherError "Too many signers given"
+
+  utx <- prepareTxForSigning @a mms lookups' tx
+  submitUnbalancedTx utx
+
+{- | Prepares an unsigned transaction for using a majority multisign validator
+  in the transaction. Due to limitations of plutus and
+  submitTxConstraintsWith, the lookups passed here must be generic, typed
+  validators cannot be passed in directly, and must instead be converted to
+  normal validators first.
+-}
+prepareTxForSigning ::
+  forall (a :: Type) (w :: Type) (s :: Row Type).
+  ( ToData (RedeemerType a)
+  , ToData (DatumType a)
+  ) =>
+  MajorityMultiSignIdentifier ->
+  ScriptLookups Any ->
+  TxConstraints (RedeemerType a) (DatumType a) ->
+  Contract w s ContractError UnbalancedTx
+prepareTxForSigning mms lookups tx = do
   (txOutData, datum, signerList) <- findUTxO mms
-  let keyOptions, missingKeyOptions :: [[PubKeyHash]]
-      keyOptions = combinations (getMinSigners signerList) signerList
-      missingKeyOptions = combinations maxMissingKeys signerList
-      maxMissingKeys :: Natural
-      maxMissingKeys = succ (naturalLength signerList ^- getMinSigners signerList)
+  let (_, missingKeyOptions) = signerCombinations signerList
       lookups' :: ScriptLookups Any
       lookups' =
         lookups
           <> Constraints.otherScript (validatorFromIdentifier mms)
           <> Constraints.unspentOutputs (uncurry Map.singleton txOutData)
-          <> foldMap Constraints.pubKey pubKeys
       tx' :: TxConstraints BuiltinData BuiltinData
       tx' =
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
@@ -159,12 +197,7 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
           <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (assetClassValue mms.asset 1)
 
-  unless (sufficientPubKeys pubKeys [] keyOptions) $
-    throwError $ OtherError "Insufficient pub keys given"
-  unless (naturalLength pubKeys <= maximumSigners) $
-    throwError $ OtherError "Too many signers given"
-
-  submitTxConstraintsWith @Any lookups' tx'
+  mkTxConstraints @Any lookups' tx'
 
 subset :: forall (a :: Type). Eq a => [a] -> [a] -> Bool
 subset xs ys = all (`elem` ys) xs
@@ -182,11 +215,7 @@ setSignatures ::
 setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
   (txOutData, _, signerList) <- findUTxO mmsIdentifier
 
-  let keyOptions, missingKeyOptions :: [[PubKeyHash]]
-      keyOptions = combinations (getMinSigners signerList) signerList
-      missingKeyOptions = combinations maxMissingKeys signerList
-      maxMissingKeys :: Natural
-      maxMissingKeys = succ (naturalLength signerList ^- getMinSigners signerList)
+  let (keyOptions, missingKeyOptions) = signerCombinations signerList
       datum :: Datum
       datum = Datum $ PlutusTx.toBuiltinData $ MajorityMultiSignDatum newKeys
       newKeysDiff :: [PubKeyHash]
