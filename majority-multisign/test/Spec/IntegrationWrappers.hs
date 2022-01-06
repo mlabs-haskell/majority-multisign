@@ -12,7 +12,7 @@ module Spec.IntegrationWrappers (
 
 import Control.Monad (void)
 import Data.Void (Void)
-import Ledger (PubKey, ScriptContext (..))
+import Ledger (PubKey, ScriptContext)
 import Ledger qualified
 import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.TxConstraints qualified as TxConstraints
@@ -20,8 +20,8 @@ import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Contracts (submitSignedTxConstraintsWith)
 import MajorityMultiSign.OnChain (checkMultisigned)
-import MajorityMultiSign.Schema
-import Plutus.Contract (Contract, ContractError (..), awaitTxConfirmed, submitTxConstraintsWith)
+import MajorityMultiSign.Schema (MajorityMultiSignIdentifier)
+import Plutus.Contract (Contract, ContractError, awaitTxConfirmed, submitTxConstraintsWith)
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx qualified
 import PlutusTx.Prelude
