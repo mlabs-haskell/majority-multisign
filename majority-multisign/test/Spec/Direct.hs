@@ -12,11 +12,12 @@ import Data.Semigroup (sconcat)
 import Data.Semigroup.Foldable.Class (Foldable1 (fold1))
 import Data.Word (Word8)
 import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
+import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Contracts (multiSignTokenName)
 import MajorityMultiSign.OnChain (mkValidator, validator)
 import MajorityMultiSign.Schema qualified as Schema
 import Plutus.V1.Ledger.Api (fromBytes)
-import Plutus.V1.Ledger.Scripts (Validator (getValidator), mkValidatorScript)
+import Plutus.V1.Ledger.Scripts (Validator (getValidator))
 import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
 import PlutusTx.Natural (Natural, nat)
@@ -26,25 +27,28 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Plutus.Context (
   ContextBuilder,
   Purpose (ForSpending),
-  paysSelf,
+  paysToSelf,
   signedWith,
  )
 import Test.Tasty.Plutus.Script.Property (scriptProperty)
 import Test.Tasty.Plutus.Script.Size (fitsInto, fitsOnChain, kbytes)
 import Test.Tasty.Plutus.Script.Unit (
-  TestData (SpendingTest),
-  WithScript,
   shouldValidate,
   shouldn'tValidate,
-  toTestValidator,
-  withValidator,
  )
 import Test.Tasty.Plutus.TestData (
-  Example (Bad, Good),
   Generator (GenForSpending),
   Methodology (Methodology),
-  static,
+  Outcome (Fail, Pass),
+  TestData (SpendingTest),
+  TestItems (ItemsForSpending,
+             spendDatum, spendRedeemer, spendValue, spendCB, spendOutcome),
  )
+import Test.Tasty.Plutus.WithScript (
+  WithScript,
+  toTestValidator,
+  withValidator,
+  )
 import Prelude hiding (pred)
 
 tests :: TestTree
@@ -182,10 +186,11 @@ tests =
     test desc =
       withValidator
         desc
-        ( mkValidatorScript
-            ( $$(PlutusTx.compile [||toTestValidator . mkValidator||])
+        ( TypedScripts.mkTypedValidator @Schema.MajorityMultiSign
+            ( $$(PlutusTx.compile [||mkValidator||])
                 `PlutusTx.applyCode` PlutusTx.liftCode initialParams
             )
+          $$(PlutusTx.compile [||toTestValidator||])
         )
     validatorScript = getValidator (validator initialParams)
 
@@ -199,6 +204,38 @@ takeNatural _ [] = []
 takeNatural n (x : xs)
   | n == zero = []
   | otherwise = x : takeNatural (pred n) xs
+
+arbitraryTransactionFrom ::
+  [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
+  -> Gen (Schema.MajorityMultiSignDatum,
+          Schema.MajorityMultiSignRedeemer,
+          Value,
+          ContextBuilder TestPurpose)
+arbitraryTransactionFrom currentSigs newSigs knownSigs = do
+  datum <- arbitraryDatumFrom knownSigs
+  redeemer <- arbitraryRedeemerFrom newSigs
+  let value = oneshotValue
+      context =
+        fold1 (pays :| (signedWith <$> currentSigs))
+      pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
+        Just Schema.UseSignaturesAct -> paysToSelf value datum
+        Just (Schema.UpdateKeysAct keys) ->
+          paysToSelf value (Schema.MajorityMultiSignDatum keys)
+        Nothing -> error "Unexpected redeemer type"
+  pure (datum, redeemer, value, context)
+
+shrinkTransaction :: (Schema.MajorityMultiSignDatum,
+                      Schema.MajorityMultiSignRedeemer,
+                      Value,
+                      ContextBuilder TestPurpose)
+                  -> [(Schema.MajorityMultiSignDatum,
+                       Schema.MajorityMultiSignRedeemer,
+                       Value,
+                       ContextBuilder TestPurpose)]
+shrinkTransaction (datum, redeemer, value, context) =
+  [(datum', redeemer', value, context)
+  | datum' <- shrinkDatum datum,
+    redeemer' <- shrinkRedeemer redeemer]
 
 shrinkDatum :: Schema.MajorityMultiSignDatum -> [Schema.MajorityMultiSignDatum]
 shrinkDatum Schema.MajorityMultiSignDatum {signers} =
@@ -236,7 +273,9 @@ possibleNewSignatories = byteHash <$> [10 .. 30]
 byteHash :: Word8 -> PubKeyHash
 byteHash = pubKeyHash . PubKey . fromBytes . ByteString.singleton
 
-testFullUse :: String -> [PubKeyHash] -> WithScript 'ForSpending ()
+type TestPurpose = 'ForSpending Schema.MajorityMultiSignDatum Schema.MajorityMultiSignRedeemer
+
+testFullUse :: String -> [PubKeyHash] -> WithScript TestPurpose ()
 testFullUse description signatories =
   testPartialUse description True signatories signatories
 
@@ -245,13 +284,13 @@ testPartialUse ::
   Bool ->
   [PubKeyHash] ->
   [PubKeyHash] ->
-  WithScript 'ForSpending ()
+  WithScript TestPurpose ()
 testPartialUse description positive currentSignatories knownSignatories =
   (if positive then shouldValidate else shouldn'tValidate)
     description
     (SpendingTest datum Schema.UseSignaturesAct mempty)
     ( fold1
-        ( paysSelf oneshotValue datum
+        ( paysToSelf oneshotValue datum
             :| (signedWith <$> currentSignatories)
         )
     )
@@ -264,13 +303,13 @@ testUpdate ::
   [PubKeyHash] ->
   [PubKeyHash] ->
   [PubKeyHash] ->
-  WithScript 'ForSpending ()
+  WithScript TestPurpose ()
 testUpdate description positive currentSignatories newSignatories knownSignatories =
   (if positive then shouldValidate else shouldn'tValidate)
     description
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
     ( fold1
-        ( paysSelf oneshotValue newDatum
+        ( paysToSelf oneshotValue newDatum
             :| (signedWith <$> currentSignatories)
         )
     )
@@ -278,7 +317,7 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
     oldDatum = Schema.MajorityMultiSignDatum knownSignatories
     newDatum = Schema.MajorityMultiSignDatum newSignatories
 
-testMissingOutputUse :: String -> NonEmpty PubKeyHash -> WithScript 'ForSpending ()
+testMissingOutputUse :: String -> NonEmpty PubKeyHash -> WithScript TestPurpose ()
 testMissingOutputUse description signatories =
   shouldn'tValidate
     description
@@ -291,7 +330,7 @@ testMissingOutputUpdate ::
   String ->
   NonEmpty PubKeyHash ->
   [PubKeyHash] ->
-  WithScript 'ForSpending ()
+  WithScript TestPurpose ()
 testMissingOutputUpdate description signatories newSignatories =
   shouldn'tValidate
     description
@@ -305,45 +344,50 @@ testProperty ::
   [PubKeyHash] ->
   [PubKeyHash] ->
   [PubKeyHash] ->
-  WithScript 'ForSpending ()
+  WithScript TestPurpose ()
 testProperty desc currentSignatories newSignatories knownSignatories =
   scriptProperty
     desc
     ( GenForSpending
+        (Methodology (arbitraryTransactionFrom currentSignatories newSignatories knownSignatories) shrinkTransaction)
         grade
-        (Methodology (arbitraryDatumFrom knownSignatories) shrinkDatum)
-        (Methodology (arbitraryRedeemerFrom newSignatories) shrinkRedeemer)
-        $ static oneshotValue
     )
-    mkContext
   where
     grade ::
-      Schema.MajorityMultiSignDatum ->
-      Schema.MajorityMultiSignRedeemer ->
-      Value ->
-      Example
-    grade Schema.MajorityMultiSignDatum {signers} _redeemer _value
+      (Schema.MajorityMultiSignDatum, Schema.MajorityMultiSignRedeemer, Value, ContextBuilder TestPurpose)
+      -> TestItems TestPurpose
+    grade (datum@Schema.MajorityMultiSignDatum {signers}, redeemer, value, context)
       | length (currentSignatories `intersection` signers)
           < ceiling (length (nub signers) % 2) =
-        Bad
-    grade _datum Schema.UseSignaturesAct {} _value = Good
-    grade
-      Schema.MajorityMultiSignDatum {signers}
-      (Schema.UpdateKeysAct keys)
-      _value
+        ItemsForSpending {
+          spendDatum= datum,
+          spendRedeemer= redeemer,
+          spendValue= value,
+          spendCB= context,
+          spendOutcome= Fail}
+    grade (datum, redeemer@Schema.UseSignaturesAct, value, context) =
+        ItemsForSpending {
+          spendDatum= datum,
+          spendRedeemer= redeemer,
+          spendValue= value,
+          spendCB= context,
+          spendOutcome= Pass}
+    grade (datum@Schema.MajorityMultiSignDatum {signers}, redeemer@(Schema.UpdateKeysAct keys), value, context)
         | let newKeys = keys \\ signers
           , newKeys `subset` currentSignatories =
-          Good
-        | otherwise = Bad
-    mkContext :: TestData 'ForSpending -> ContextBuilder 'ForSpending
-    mkContext (SpendingTest datum redeemer val) =
-      fold1 (pays :| (signedWith <$> currentSignatories))
-      where
-        pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
-          Just Schema.UseSignaturesAct -> paysSelf val datum
-          Just (Schema.UpdateKeysAct keys) ->
-            paysSelf val (Schema.MajorityMultiSignDatum keys)
-          Nothing -> error "Unexpected redeemer type"
+        ItemsForSpending {
+          spendDatum= datum,
+          spendRedeemer= redeemer,
+          spendValue= value,
+          spendCB= context,
+          spendOutcome= Pass}
+        | otherwise =
+        ItemsForSpending {
+          spendDatum= datum,
+          spendRedeemer= redeemer,
+          spendValue= value,
+          spendCB= context,
+          spendOutcome= Fail}
     intersection xs = nub . filter (`elem` xs)
     subset xs ys = all (`elem` ys) xs
 
