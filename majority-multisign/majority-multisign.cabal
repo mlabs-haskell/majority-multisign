@@ -71,6 +71,7 @@ library
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
+    , plutus-list        ==1.0.*
     , plutus-numeric
     , plutus-pab
     , plutus-tx
@@ -105,6 +106,7 @@ test-suite majority-multisign-test
     , plutus-laws         >=1.0 && <2.4
     , plutus-ledger
     , plutus-ledger-api
+    , plutus-list
     , plutus-numeric
     , plutus-tx
     , plutus-tx-plugin

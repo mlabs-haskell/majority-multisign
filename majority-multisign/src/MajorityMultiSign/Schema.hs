@@ -20,7 +20,6 @@ module MajorityMultiSign.Schema (
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
   maximumSigners,
-  naturalLength,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, (.:), (.=))
@@ -28,7 +27,6 @@ import Data.Aeson qualified as Aeson
 import Data.Aeson.Extras (encodeByteString)
 import Data.Functor.Foldable (Fix (Fix))
 import Data.OpenApi.Schema qualified as OpenApi
-import Data.Semigroup (Sum (Sum, getSum))
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
@@ -38,6 +36,7 @@ import Plutus.Contract (Endpoint, type (.\/))
 import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Value (AssetClass, CurrencySymbol (CurrencySymbol), TokenName (TokenName))
 import PlutusTx qualified
+import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.NatRatio (NatRatio, ceiling, frac, fromNatural)
 import PlutusTx.Natural (Natural, nat)
 import PlutusTx.Prelude hiding (Eq, decodeUtf8, (<$>), (<*>))
@@ -61,17 +60,11 @@ signReq = [frac| (1, 2) |] -- 0.5
 maximumSigners :: Natural
 maximumSigners = [nat| 10 |]
 
-{-# INLINEABLE naturalLength #-}
-
--- | A count of the items in a `Foldable` is always 'Natural'.
-naturalLength :: Foldable t => t a -> Natural
-naturalLength = getSum . foldMap (Sum . const one)
-
 {-# INLINEABLE getMinSigners #-}
 
 -- | Given a list of Signers, gets the minimum number of signers needed for a transaction to be valid
 getMinSigners :: [a] -> Natural
-getMinSigners = ceiling . (signReq *) . fromNatural . naturalLength
+getMinSigners = ceiling . (signReq *) . fromNatural . Natural.length
 
 -- | Data type used to identify a majority multisign validator (the asset needed to call it)
 newtype MajorityMultiSignIdentifier = MajorityMultiSignIdentifier
