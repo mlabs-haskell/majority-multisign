@@ -20,8 +20,8 @@ import Plutus.V1.Ledger.Api (fromBytes)
 import Plutus.V1.Ledger.Scripts (Validator (getValidator))
 import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
-import PlutusTx.Natural (nat)
 import PlutusTx.List.Natural qualified as Natural
+import PlutusTx.Natural (nat)
 import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Plutus.Context (
@@ -41,14 +41,20 @@ import Test.Tasty.Plutus.TestData (
   Methodology (Methodology),
   Outcome (Fail, Pass),
   TestData (SpendingTest),
-  TestItems (ItemsForSpending,
-             spendDatum, spendRedeemer, spendValue, spendCB, spendOutcome),
+  TestItems (
+    ItemsForSpending,
+    spendCB,
+    spendDatum,
+    spendOutcome,
+    spendRedeemer,
+    spendValue
+  ),
  )
 import Test.Tasty.Plutus.WithScript (
   WithScript,
   toTestValidator,
   withValidator,
-  )
+ )
 import Prelude hiding (pred)
 
 tests :: TestTree
@@ -190,7 +196,7 @@ tests =
             ( $$(PlutusTx.compile [||mkValidator||])
                 `PlutusTx.applyCode` PlutusTx.liftCode initialParams
             )
-          $$(PlutusTx.compile [||toTestValidator||])
+            $$(PlutusTx.compile [||toTestValidator||])
         )
     validatorScript = getValidator (validator initialParams)
 
@@ -200,11 +206,15 @@ arbitraryDatumFrom sigs =
     <$> sublistOf sigs
 
 arbitraryTransactionFrom ::
-  [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
-  -> Gen (Schema.MajorityMultiSignDatum,
-          Schema.MajorityMultiSignRedeemer,
-          Value,
-          ContextBuilder TestPurpose)
+  [PubKeyHash] ->
+  [PubKeyHash] ->
+  [PubKeyHash] ->
+  Gen
+    ( Schema.MajorityMultiSignDatum
+    , Schema.MajorityMultiSignRedeemer
+    , Value
+    , ContextBuilder TestPurpose
+    )
 arbitraryTransactionFrom currentSigs newSigs knownSigs = do
   datum <- arbitraryDatumFrom knownSigs
   redeemer <- arbitraryRedeemerFrom newSigs
@@ -218,18 +228,23 @@ arbitraryTransactionFrom currentSigs newSigs knownSigs = do
         Nothing -> error "Unexpected redeemer type"
   pure (datum, redeemer, value, context)
 
-shrinkTransaction :: (Schema.MajorityMultiSignDatum,
-                      Schema.MajorityMultiSignRedeemer,
-                      Value,
-                      ContextBuilder TestPurpose)
-                  -> [(Schema.MajorityMultiSignDatum,
-                       Schema.MajorityMultiSignRedeemer,
-                       Value,
-                       ContextBuilder TestPurpose)]
+shrinkTransaction ::
+  ( Schema.MajorityMultiSignDatum
+  , Schema.MajorityMultiSignRedeemer
+  , Value
+  , ContextBuilder TestPurpose
+  ) ->
+  [ ( Schema.MajorityMultiSignDatum
+    , Schema.MajorityMultiSignRedeemer
+    , Value
+    , ContextBuilder TestPurpose
+    )
+  ]
 shrinkTransaction (datum, redeemer, value, context) =
-  [(datum', redeemer', value, context)
-  | datum' <- shrinkDatum datum,
-    redeemer' <- shrinkRedeemer redeemer]
+  [ (datum', redeemer', value, context)
+  | datum' <- shrinkDatum datum
+  , redeemer' <- shrinkRedeemer redeemer
+  ]
 
 shrinkDatum :: Schema.MajorityMultiSignDatum -> [Schema.MajorityMultiSignDatum]
 shrinkDatum Schema.MajorityMultiSignDatum {signers} =
@@ -348,40 +363,44 @@ testProperty desc currentSignatories newSignatories knownSignatories =
     )
   where
     grade ::
-      (Schema.MajorityMultiSignDatum, Schema.MajorityMultiSignRedeemer, Value, ContextBuilder TestPurpose)
-      -> TestItems TestPurpose
+      (Schema.MajorityMultiSignDatum, Schema.MajorityMultiSignRedeemer, Value, ContextBuilder TestPurpose) ->
+      TestItems TestPurpose
     grade (datum@Schema.MajorityMultiSignDatum {signers}, redeemer, value, context)
       | length (currentSignatories `intersection` signers)
           < ceiling (length (nub signers) % 2) =
-        ItemsForSpending {
-          spendDatum= datum,
-          spendRedeemer= redeemer,
-          spendValue= value,
-          spendCB= context,
-          spendOutcome= Fail}
+        ItemsForSpending
+          { spendDatum = datum
+          , spendRedeemer = redeemer
+          , spendValue = value
+          , spendCB = context
+          , spendOutcome = Fail
+          }
     grade (datum, redeemer@Schema.UseSignaturesAct, value, context) =
-        ItemsForSpending {
-          spendDatum= datum,
-          spendRedeemer= redeemer,
-          spendValue= value,
-          spendCB= context,
-          spendOutcome= Pass}
+      ItemsForSpending
+        { spendDatum = datum
+        , spendRedeemer = redeemer
+        , spendValue = value
+        , spendCB = context
+        , spendOutcome = Pass
+        }
     grade (datum@Schema.MajorityMultiSignDatum {signers}, redeemer@(Schema.UpdateKeysAct keys), value, context)
-        | let newKeys = keys \\ signers
-          , newKeys `subset` currentSignatories =
-        ItemsForSpending {
-          spendDatum= datum,
-          spendRedeemer= redeemer,
-          spendValue= value,
-          spendCB= context,
-          spendOutcome= Pass}
-        | otherwise =
-        ItemsForSpending {
-          spendDatum= datum,
-          spendRedeemer= redeemer,
-          spendValue= value,
-          spendCB= context,
-          spendOutcome= Fail}
+      | let newKeys = keys \\ signers
+        , newKeys `subset` currentSignatories =
+        ItemsForSpending
+          { spendDatum = datum
+          , spendRedeemer = redeemer
+          , spendValue = value
+          , spendCB = context
+          , spendOutcome = Pass
+          }
+      | otherwise =
+        ItemsForSpending
+          { spendDatum = datum
+          , spendRedeemer = redeemer
+          , spendValue = value
+          , spendCB = context
+          , spendOutcome = Fail
+          }
     intersection xs = nub . filter (`elem` xs)
     subset xs ys = all (`elem` ys) xs
 
