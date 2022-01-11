@@ -25,12 +25,12 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
   getMinSigners,
   maximumSigners,
-  naturalLength,
  )
 import Plutus.V1.Ledger.Api (TxOut (txOutDatumHash, txOutValue))
 import Plutus.V1.Ledger.Contexts (TxInInfo (txInInfoResolved), TxInfo (txInfoInputs), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
 import PlutusTx qualified
+import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (Natural)
 import PlutusTx.Prelude
 
@@ -99,7 +99,7 @@ checkMultisigned MajorityMultiSignIdentifier {asset} ctx =
 {-# INLINEABLE isSufficientlySigned #-}
 isSufficientlySigned :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
-  traceIfFalse "Not enough signatures" (naturalLength signersPresent >= minSigners)
+  traceIfFalse "Not enough signatures" (Natural.length signersPresent >= minSigners)
     && traceIfFalse "Missing signatures from new keys" (hasNewSignatures red dat ctx)
   where
     signersPresent, signersUnique :: [PubKeyHash]
@@ -112,10 +112,10 @@ isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
 {-# INLINEABLE isUnderSizeLimit #-}
 isUnderSizeLimit :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> Bool
 isUnderSizeLimit UseSignaturesAct MajorityMultiSignDatum {signers} =
-  traceIfFalse "Datum too large" (naturalLength signers <= maximumSigners)
+  traceIfFalse "Datum too large" (Natural.length signers <= maximumSigners)
 isUnderSizeLimit (UpdateKeysAct keys) MajorityMultiSignDatum {signers} =
-  traceIfFalse "Datum too large" (naturalLength signers <= maximumSigners)
-    && traceIfFalse "Redeemer too large" (naturalLength keys <= maximumSigners)
+  traceIfFalse "Datum too large" (Natural.length signers <= maximumSigners)
+    && traceIfFalse "Redeemer too large" (Natural.length keys <= maximumSigners)
 
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =

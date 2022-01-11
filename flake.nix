@@ -74,6 +74,7 @@
               ps.tasty-plutus
               ps.quickcheck-plutus-instances
               ps.plutus-laws
+              ps.plutus-list
               ps.plutus-golden
 
               ps.base-deriving-via

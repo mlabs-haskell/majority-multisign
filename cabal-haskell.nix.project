@@ -34,10 +34,11 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/Liqwid-Labs/plutus-extra.git
-  tag: 43e46741c588d46e8ee317fa84be4824c0024c68
+  tag: 285b7030f49cd2e3b46bfe21f21306659985bf92
   subdir:
     plutus-golden
     plutus-laws
+    plutus-list
     plutus-numeric
     plutus-pretty
     quickcheck-plutus-instances
