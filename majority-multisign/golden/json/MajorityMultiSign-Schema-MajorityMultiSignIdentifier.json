@@ -5,10 +5,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "8a"
+                        "unCurrencySymbol": "8ad048f3d81db9f12cac19fa4f26b2eb22eb8a45167f13c61d8ebe"
                     },
                     {
-                        "unTokenName": "\u00000xa0a0a65187c1f1c76635cec08593b31b531bdd7254c1ddc4726d6a151f0d"
+                        "unTokenName": "\u00000xa0a0a65187c1f1c76635cec08593b31b531bdd7254c1ddc4"
                     }
                 ]
             }
@@ -20,7 +20,7 @@
                         "unCurrencySymbol": "1493f8ee97d66722cbe51310fb396e15f299f404468f905a"
                     },
                     {
-                        "unTokenName": "\u00000x4820d61f507ae54d6ae51fb490c9454e1597e730f6ec07ca3710629a22e371558040bf55e61655"
+                        "unTokenName": "\u00000x4820d61f507ae54d6ae51f"
                     }
                 ]
             }
@@ -29,10 +29,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "67dd30e3f9c8e8d3df808337d245d336a4deffcaf96c0c7148383fe0db4829cf9ebb3613fc4f2268a768021dc64ebf9f586b4d15e27b7d86e142bb"
+                        "unCurrencySymbol": "67dd30e3f9c8e8d3df808337d245d336a4deffcaf96c0c7148383f"
                     },
                     {
-                        "unTokenName": "\u00000xee852ef24c8f31e3f9f3121419507630726547d51f9656be0a3f8d8e7822d6c1fbd9c8dfc8b75873"
+                        "unTokenName": "\u00000xee852ef24c8f31e3f9"
                     }
                 ]
             }
@@ -41,10 +41,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "1683a6b8350edab294d28d9069dd20e1156bf9fb3c6043559136f8cd177dca49b77d1c6f51f97ffe62ab623eea1ce7ad881dd2"
+                        "unCurrencySymbol": "1683a6b8350edab294d28d90"
                     },
                     {
-                        "unTokenName": "\u00000x71b0735029e3c4548ce1db7523fd3e614a9471e36499593a8d28dcaf1f3590bfa1671afe840677c975d87bfaf191"
+                        "unTokenName": "\u00000x71b0735029e3c4548ce1db7523fd3e614a9471e36499593a8d28dc"
                     }
                 ]
             }
@@ -53,10 +53,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "5f9e874ca06092166d57925a085eac9bc3a6e5dc160222"
+                        "unCurrencySymbol": "5f9e874ca06092166d57925a085eac9bc3a6e5dc16022284e9d15bb233"
                     },
                     {
-                        "unTokenName": "\u00000xd4bd9f4fb5f11890e742e440ac50cfa03f02e34f5ed27cdc0d3b456cdf5c1ad595e5579b5e32984429b0e5917f6b822afc57c90986"
+                        "unTokenName": "\u00000xd4bd9f4fb5f118"
                     }
                 ]
             }
@@ -65,10 +65,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "644c110236e3ef9390e3fa5b09276368406e5f158ae560253a4e020dc81546c605455671511a973293991e624f8977de4615ec5b98ca"
+                        "unCurrencySymbol": "644c110236e3ef93"
                     },
                     {
-                        "unTokenName": "\u00000xeddf7e5147a2b0ea0ca0"
+                        "unTokenName": "\u00000xeddf7e5147a2b0ea0ca015a352dec143bb"
                     }
                 ]
             }
@@ -77,7 +77,7 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "5c780e97a64a6278ea5dcb308d2d2d2169545acb54a76545a25db02d0092ab913ee7dabc644147138742facd391964eac8bc491c9435a596"
+                        "unCurrencySymbol": "5c780e97a64a6278ea5dcb308d2d2d2169545a"
                     },
                     {
                         "unTokenName": "\u00000x7bd7f875ee26c39f134c647f21d2011e0c68cbedd738b8303390"
@@ -89,10 +89,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "7536f37f95150462"
+                        "unCurrencySymbol": "7536f37f951504622c7aadb550a6bd9466f7aa30e4f578decebf64e7eea5"
                     },
                     {
-                        "unTokenName": "\u00000x20a267ea25fab8996b739224601f304fe2af6ef6ab9f70e9e1caa1ced93995c7333ae598725d01d502dfa5b4f8265180f3"
+                        "unTokenName": "\u00000x20a267ea25"
                     }
                 ]
             }
@@ -101,10 +101,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "869089457ffb50ec16cddcab8c97d2250df70643ee964ddb28d7f83cdb8a6f72013ede26819287f9dea724cdf3fff37e9fc7b0"
+                        "unCurrencySymbol": "869089457ffb50ec"
                     },
                     {
-                        "unTokenName": "\u00000x5e5665ac2528bf9b7742d42d55ead82e8647d37a5286bd8d22c7d3b399ff088d118a9f95aa77a0dd6f2985e68b841af4317ba77231e1e8b871704d4bb5c53f0e"
+                        "unTokenName": ""
                     }
                 ]
             }
@@ -113,7 +113,7 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "44be319521fd219aa2026914364ddb531f0a8f93d98016f46a58ef8d3032be57fe213b676501e76b51c540d7ab79a5f9a18ebeca7a0636d564"
+                        "unCurrencySymbol": "44be319521fd219aa2026914364ddb531f0a8f93d9"
                     },
                     {
                         "unTokenName": ""
@@ -137,10 +137,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "e8ce20669afa11ea9901c2b66ec809c9799d0bdc876c6281c6ff1b6e50a533f9af91b97d27376ad4c5"
+                        "unCurrencySymbol": "e8ce20669afa11ea99"
                     },
                     {
-                        "unTokenName": "\u00000x618720a3fead0f1b41cbfb33c27a7bc9fa8b6faae7a161736247a73b0c301f3891693e20445cc82c6f2bb87ca35a595e"
+                        "unTokenName": "\u00000x618720a3fead0f1b41cbfb33c27a7bc9"
                     }
                 ]
             }
@@ -152,7 +152,7 @@
                         "unCurrencySymbol": "c19b2a3b4e522ca284a3d3172792212b0a"
                     },
                     {
-                        "unTokenName": "\u00000x93e42c88fac92c5eeec205500907fc0c41b93415b1979c7e24a8917a73c63f8c29ba8b225989a9c868b49bbed919703a83097cdfa5068feb199c025c00"
+                        "unTokenName": "\u00000x93e42c88fac92c5eeec205500907fc0c41b93415b1979c7e24a8917a73"
                     }
                 ]
             }
@@ -161,10 +161,10 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "20be16034ef03b69ff5c560033697f074d868bc4448832ac047e044aab82d7fd16240dc36dbec2fdb346b8c0afeab213e1c09833ca4f237549f0b77604f5"
+                        "unCurrencySymbol": "20be16034ef03b69ff5c560033697f074d868bc4448832ac04"
                     },
                     {
-                        "unTokenName": "\u00000xe8316957e9129a06661774cc72673a1d1e5605996349a324ca18cd8b571797ab9627934dec5768d4dffa1e7ff1308098ea2be60ffbce036eac"
+                        "unTokenName": "\u00000xe8316957e9129a06661774cc72673a1d1e5605996349a324ca"
                     }
                 ]
             }
@@ -176,7 +176,7 @@
                         "unCurrencySymbol": "1db553cbc743091f93c19d"
                     },
                     {
-                        "unTokenName": "\u00000x5616461129261704b7375d763b8d599934dfeb851aea80772194f79ff71cfe3c17"
+                        "unTokenName": "V\u0016F"
                     }
                 ]
             }
@@ -185,7 +185,7 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "e58e34275d3bafb56351755205a71940938e2d333fdb1b88ac5bdd0b1ab25d"
+                        "unCurrencySymbol": "e58e34275d3bafb56351755205a71940938e2d333fdb1b88ac5b"
                     },
                     {
                         "unTokenName": "\u00000xb628d9585d989ef6df"
@@ -197,7 +197,7 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "e16c42ec28fc2203fea46986b5e33a412b70f8689bdb542556c8bf0e9739f5111609"
+                        "unCurrencySymbol": "e16c42ec28fc2203fea46986b5e33a"
                     },
                     {
                         "unTokenName": "\u00000xfacecb6cba07e32faa21c087eed11e8bdf9b9ede"
@@ -212,7 +212,7 @@
                         "unCurrencySymbol": "7fa550d2843e0e4b34"
                     },
                     {
-                        "unTokenName": "\u00000xf16552a27d99d884c5b4e62b99d62e1b72b32607d4da68b1268d221cd021fc78f3aa323642172c156e5e4a21640b0cbca471ab818c57afd565"
+                        "unTokenName": "\u00000xf16552a27d99d884c5b4e62b99d62e1b72b32607d4da68b126"
                     }
                 ]
             }
@@ -221,7 +221,7 @@
             "asset": {
                 "unAssetClass": [
                     {
-                        "unCurrencySymbol": "04105565f044f1c18c836f36b99d6fd062950a38a42b7c2a696e317bac3905cf2af18e9764bb"
+                        "unCurrencySymbol": "04105565f044"
                     },
                     {
                         "unTokenName": "\u00000x04f0508d5057eb9985d691b70e2180a4c360845a4871e05816ffad"
@@ -236,7 +236,7 @@
                         "unCurrencySymbol": "7a11a604a9d98ac6ea1645f9c7221499b04071"
                     },
                     {
-                        "unTokenName": "\u00000xf6ee8b8e0fc73d7903f7"
+                        "unTokenName": "\u00000xf6ee8b8e0fc73d7903f780"
                     }
                 ]
             }
