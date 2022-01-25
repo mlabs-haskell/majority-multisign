@@ -29,10 +29,10 @@
         "homepage": null,
         "owner": "input-output-hk",
         "repo": "cardano-base",
-        "rev": "4ea7e2d927c9a7f78ddc69738409a5827ab66b98",
-        "sha256": "0n0hxbr0l95cdc25jmmgs7apmmw17i91chhj5rzzv1k7f3iymf6d",
+        "rev": "654f5b7c76f7cc57900b4ddc664a82fc3b925fb0",
+        "sha256": "0j4x9zbx5dkww82sqi086h39p456iq5xr476ylmrnpwcpfb4xai4",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/cardano-base/archive/4ea7e2d927c9a7f78ddc69738409a5827ab66b98.tar.gz",
+        "url": "https://github.com/input-output-hk/cardano-base/archive/654f5b7c76f7cc57900b4ddc664a82fc3b925fb0.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "cardano-crypto": {
@@ -41,10 +41,10 @@
         "homepage": null,
         "owner": "input-output-hk",
         "repo": "cardano-crypto",
-        "rev": "07397f0e50da97eaa0575d93bee7ac4b2b2576ec",
-        "sha256": "06sdx5ndn2g722jhpicmg96vsrys89fl81k8290b3lr6b1b0w4m3",
+        "rev": "f73079303f663e028288f9f4a9e08bcca39a923e",
+        "sha256": "1n87i15x54s0cjkh3nsxs4r1x016cdw1fypwmr68936n3xxsjn6q",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/cardano-crypto/archive/07397f0e50da97eaa0575d93bee7ac4b2b2576ec.tar.gz",
+        "url": "https://github.com/input-output-hk/cardano-crypto/archive/f73079303f663e028288f9f4a9e08bcca39a923e.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "cardano-ledger-specs": {
@@ -65,10 +65,10 @@
         "homepage": "https://cardano.org",
         "owner": "input-output-hk",
         "repo": "cardano-node",
-        "rev": "b6ca519f97a0e795611a63174687e6bb70c9f752",
-        "sha256": "0z5lpmqc98fwg3xzpzxkfslbxdjwfyyw8bn8yq0574sf4942vqdn",
+        "rev": "4f65fb9a27aa7e3a1873ab4211e412af780a3648",
+        "sha256": "00k9fqrm0gphjji23x0nc9z6bqh8bqrncgivn3mi3csacjzicrrx",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/cardano-node/archive/b6ca519f97a0e795611a63174687e6bb70c9f752.tar.gz",
+        "url": "https://github.com/input-output-hk/cardano-node/archive/4f65fb9a27aa7e3a1873ab4211e412af780a3648.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "cardano-prelude": {
@@ -77,10 +77,10 @@
         "homepage": null,
         "owner": "input-output-hk",
         "repo": "cardano-prelude",
-        "rev": "fd773f7a58412131512b9f694ab95653ac430852",
-        "sha256": "02jddik1yw0222wd6q0vv10f7y8rdgrlqaiy83ph002f9kjx7mh6",
+        "rev": "bb4ed71ba8e587f672d06edf9d2e376f4b055555",
+        "sha256": "00h10l5mmiza9819p9v5q5749nb9pzgi20vpzpy1d34zmh6gf1cj",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/cardano-prelude/archive/fd773f7a58412131512b9f694ab95653ac430852.tar.gz",
+        "url": "https://github.com/input-output-hk/cardano-prelude/archive/bb4ed71ba8e587f672d06edf9d2e376f4b055555.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "cardano-wallet": {
@@ -89,10 +89,10 @@
         "homepage": "",
         "owner": "j-mueller",
         "repo": "cardano-wallet",
-        "rev": "6be73ab852c0592713dfe78218856d4a8a0ee69e",
-        "sha256": "0rx5hvmbdv5dwb4qq39vyhisj0v75j21jbiivn3s3q9za6m6x1p4",
+        "rev": "760140e238a5fbca61d1b286d7a80ece058dc729",
+        "sha256": "014njpddrlqm9bbab636h2gf58zkm0bx04i1jsn07vh5j3k0gri6",
         "type": "tarball",
-        "url": "https://github.com/j-mueller/cardano-wallet/archive/6be73ab852c0592713dfe78218856d4a8a0ee69e.tar.gz",
+        "url": "https://github.com/j-mueller/cardano-wallet/archive/760140e238a5fbca61d1b286d7a80ece058dc729.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "flat": {
@@ -197,10 +197,10 @@
         "homepage": "",
         "owner": "input-output-hk",
         "repo": "ouroboros-network",
-        "rev": "1f4973f36f689d6da75b5d351fb124d66ef1057d",
-        "sha256": "186056rvzdzy4jhvamjjbcmjyr94hs5hcyr8x6a0ch21hv5f014p",
+        "rev": "d613de3d872ec8b4a5da0c98afb443f322dc4dab",
+        "sha256": "0lfbipfdrzay8v1pcazx0qgkda3d1j0505yig9jrml9j7991rmhl",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/ouroboros-network/archive/1f4973f36f689d6da75b5d351fb124d66ef1057d.tar.gz",
+        "url": "https://github.com/input-output-hk/ouroboros-network/archive/d613de3d872ec8b4a5da0c98afb443f322dc4dab.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus": {
@@ -209,10 +209,10 @@
         "homepage": "",
         "owner": "input-output-hk",
         "repo": "plutus",
-        "rev": "3f089ccf0ca746b399c99afe51e063b0640af547",
-        "sha256": "1nx8xmdgwmnsla4qg4k67f5md8vm3p1p9i25ndalrqdg40z90486",
+        "rev": "2721c59fd2302b75c4138456c29fd5b509e8340a",
+        "sha256": "02g8pzldyfl4pm8sy22yd3l2fr3zpyhwkvv9x3h9lsf6lfx5wi7k",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/plutus/archive/3f089ccf0ca746b399c99afe51e063b0640af547.tar.gz",
+        "url": "https://github.com/input-output-hk/plutus/archive/2721c59fd2302b75c4138456c29fd5b509e8340a.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus-apps": {
@@ -221,10 +221,10 @@
         "homepage": "",
         "owner": "input-output-hk",
         "repo": "plutus-apps",
-        "rev": "404af7ac3e27ebcb218c05f79d9a70ca966407c9",
-        "sha256": "00pv5ds99lf6lmws3a3ipsn9amg56ayc9b0wqki2gky464dm6gzr",
+        "rev": "75a581c6eb98d36192ce3d3f86ea60a04bc4a52a",
+        "sha256": "06f0ghj3v2q6gh73kgsr3vqbhr7f7gkbar0c9ry3jmmxny30q6dv",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/plutus-apps/archive/404af7ac3e27ebcb218c05f79d9a70ca966407c9.tar.gz",
+        "url": "https://github.com/input-output-hk/plutus-apps/archive/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus-extra": {
