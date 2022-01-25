@@ -221,10 +221,10 @@
         "homepage": "",
         "owner": "input-output-hk",
         "repo": "plutus-apps",
-        "rev": "75a581c6eb98d36192ce3d3f86ea60a04bc4a52a",
-        "sha256": "06f0ghj3v2q6gh73kgsr3vqbhr7f7gkbar0c9ry3jmmxny30q6dv",
+        "rev": "34fe6eeff441166fee0cd0ceba68c1439f0e93d2",
+        "sha256": "1hs1h1bn86cb752lzswxbwjb0cyw2fayy5g723z3hdk8k91dhhji",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/plutus-apps/archive/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a.tar.gz",
+        "url": "https://github.com/input-output-hk/plutus-apps/archive/34fe6eeff441166fee0cd0ceba68c1439f0e93d2.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus-extra": {

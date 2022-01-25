@@ -5,6 +5,7 @@ source-repository-package
     doc
     freer-extras
     playground-common
+    plutus-apps
     plutus-chain-index
     plutus-chain-index-core
     plutus-contract
@@ -16,7 +17,7 @@ source-repository-package
     plutus-use-cases
     quickcheck-dynamic
     web-ghc
-  tag: 75a581c6eb98d36192ce3d3f86ea60a04bc4a52a
+  tag: 34fe6eeff441166fee0cd0ceba68c1439f0e93d2
 
 -- New testing functionality
 source-repository-package
