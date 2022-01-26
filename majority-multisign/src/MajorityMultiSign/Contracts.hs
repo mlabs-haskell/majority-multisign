@@ -67,18 +67,23 @@ import Plutus.Contract (
  )
 import Plutus.Contract.Types (mapError)
 import Plutus.Contracts.Currency (CurrencyError (CurContractError), currencySymbol, mintContract)
+import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Plutus.V1.Ledger.Api (
   Datum (Datum, getDatum),
   Redeemer (Redeemer),
   ToData,
   fromBuiltinData,
  )
-import Plutus.V1.Ledger.Value (assetClass, assetClassValue, assetClassValueOf)
+import Plutus.V1.Ledger.Value (Value, assetClass, assetClassValue, assetClassValueOf)
 import PlutusTx (toBuiltinData)
 import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (Natural)
 import PlutusTx.Numeric.Extra ((^-))
 import PlutusTx.Prelude hiding (foldMap, (<>))
+
+-- | Add min lovelace to a value
+addMinLovelace :: Value -> Value
+addMinLovelace = (lovelaceValueOf 2_000_000 <>)
 
 -- | Token name for the MajorityMultiSignDatum
 multiSignTokenName :: TokenName
@@ -106,7 +111,7 @@ initialize pkh dat = do
         Constraints.mustPayToOtherScript
           (validatorHash $ validator params)
           (Scripts.Datum $ toBuiltinData dat)
-          (assetClassValue oneshotAsset 1)
+          (addMinLovelace $ assetClassValue oneshotAsset 1)
   tell $ Last $ Just oneshotAsset
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
@@ -193,7 +198,7 @@ prepareTxForSigning mms lookups tx = do
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
           <> makeSigningConstraint @Any missingKeyOptions
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
-          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (assetClassValue mms.asset 1)
+          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (addMinLovelace $ assetClassValue mms.asset 1)
 
   mkTxConstraints @Any lookups' tx'
 
@@ -226,7 +231,7 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
         makeSigningConstraint @Any missingKeyOptions
           <> foldMap Constraints.mustBeSignedBy newKeysDiff
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
-          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (assetClassValue mmsIdentifier.asset 1)
+          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (addMinLovelace $ assetClassValue mmsIdentifier.asset 1)
 
   unless (sufficientPubKeys pubKeys newKeysDiff keyOptions) $
     throwError $ OtherError "Insufficient pub keys given"

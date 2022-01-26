@@ -8,7 +8,6 @@ import Data.Map qualified as Map
 import Data.Text (Text)
 import Ledger (AssetClass, Datum (Datum), PaymentPubKeyHash, Value)
 import Ledger qualified
-import Ledger.CardanoWallet qualified as CardanoWallet
 import Ledger.Scripts qualified as Scripts
 import MajorityMultiSign.Contracts (multiSignTokenName)
 import MajorityMultiSign.OnChain (validatorHashFromIdentifier)
@@ -32,7 +31,7 @@ import Spec.IntegrationWrappers (
  )
 import Test.Tasty (TestTree, testGroup)
 import Wallet.Emulator.Error (WalletAPIError (ValidationError))
-import Wallet.Emulator.Wallet (walletToMockWallet)
+import Wallet.Emulator.Wallet (mockWalletPaymentPubKey)
 import Prelude qualified as P
 
 -- Since we can't test multisignature with emulator trace, we'll be using a single signer
@@ -44,6 +43,9 @@ nonSigner = Test.knownWallet 2
 
 signerPkh :: PaymentPubKeyHash
 signerPkh = Test.mockWalletPaymentPubKeyHash signer
+
+nonSignerPkh :: PaymentPubKeyHash
+nonSignerPkh = Test.mockWalletPaymentPubKeyHash nonSigner
 
 correctContract' :: Contract () Empty ContractError ()
 correctContract' = correctContract integrationParams
@@ -99,8 +101,8 @@ integrationParams :: IntegrationParams
 integrationParams =
   IntegrationParams
     { mmsId = exampleMMS
-    , ownPubKey = walletPubKey signer
-    , pubKeys = [walletPubKey signer]
+    , ownPubKey = mockWalletPaymentPubKey signer
+    , pubKeys = [mockWalletPaymentPubKey signer]
     }
 
 checkPredicateMMS :: [PaymentPubKeyHash] -> P.String -> Test.TracePredicate -> Trace.EmulatorTrace () -> TestTree
@@ -112,8 +114,10 @@ multisignExampleDatum = Datum . PlutusTx.toBuiltinData . MajorityMultiSignDatum
 emuConfig :: [PaymentPubKeyHash] -> Emulator.EmulatorConfig
 emuConfig signers =
   addressValueOptions
-    [(signerPkh, lovelaceValueOf 1_000_000)]
-    [(validatorHashFromIdentifier exampleMMS, assetClassValue multisignTokenAssetClass 1, multisignExampleDatum signers)]
+    [ (signerPkh, lovelaceValueOf 1_000_000_000)
+    , (nonSignerPkh, lovelaceValueOf 1_000_000_000)
+    ]
+    [(validatorHashFromIdentifier exampleMMS, assetClassValue multisignTokenAssetClass 1 <> lovelaceValueOf 1_000_000_000, multisignExampleDatum signers)]
 
 traceWrapper :: Contract () Empty ContractError () -> Trace.EmulatorTrace ()
 traceWrapper contract = do
@@ -139,16 +143,3 @@ addressValueOptions walletAllocs validatorAllocs = Emulator.EmulatorConfig (Righ
               (\(_, _, d) -> (Scripts.datumHash d, d)) <$> validatorAllocs
         , txMint = foldMap snd walletAllocs <> foldMap (\(_, v, _) -> v) validatorAllocs
         }
-
--- TODO: Once walletPubKey is re-added to Plutus.Contract.Test import it thence
--- and remove this definition (https://github.com/input-output-hk/plutus-apps/pull/105).
-walletPubKey :: Test.Wallet -> Ledger.PaymentPubKey
-walletPubKey w =
-  CardanoWallet.paymentPubKey $
-    fromMaybe
-      ( P.error $
-          "Wallet.Emulator.Wallet.walletPubKey: Wallet "
-            <> P.show w
-            <> " is not a mock wallet"
-      )
-      $ walletToMockWallet w
