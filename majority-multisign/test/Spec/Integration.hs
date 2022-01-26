@@ -6,7 +6,7 @@ import Data.Default (def)
 import Data.Function ((&))
 import Data.Map qualified as Map
 import Data.Text (Text)
-import Ledger (AssetClass, Datum (Datum), PubKeyHash, Value)
+import Ledger (AssetClass, Datum (Datum), PaymentPubKeyHash, Value)
 import Ledger qualified
 import Ledger.CardanoWallet qualified as CardanoWallet
 import Ledger.Scripts qualified as Scripts
@@ -32,7 +32,7 @@ import Spec.IntegrationWrappers (
  )
 import Test.Tasty (TestTree, testGroup)
 import Wallet.Emulator.Error (WalletAPIError (ValidationError))
-import Wallet.Emulator.Wallet (walletMockWallet)
+import Wallet.Emulator.Wallet (walletToMockWallet)
 import Prelude qualified as P
 
 -- Since we can't test multisignature with emulator trace, we'll be using a single signer
@@ -42,8 +42,8 @@ signer = Test.knownWallet 1
 nonSigner :: Test.Wallet
 nonSigner = Test.knownWallet 2
 
-signerPkh :: PubKeyHash
-signerPkh = Test.walletPubKeyHash signer
+signerPkh :: PaymentPubKeyHash
+signerPkh = Test.mockWalletPaymentPubKeyHash signer
 
 correctContract' :: Contract () Empty ContractError ()
 correctContract' = correctContract integrationParams
@@ -103,13 +103,13 @@ integrationParams =
     , pubKeys = [walletPubKey signer]
     }
 
-checkPredicateMMS :: [PubKeyHash] -> P.String -> Test.TracePredicate -> Trace.EmulatorTrace () -> TestTree
+checkPredicateMMS :: [PaymentPubKeyHash] -> P.String -> Test.TracePredicate -> Trace.EmulatorTrace () -> TestTree
 checkPredicateMMS signers = Test.checkPredicateOptions $ Test.defaultCheckOptions & Test.emulatorConfig .~ emuConfig signers
 
-multisignExampleDatum :: [PubKeyHash] -> Datum
+multisignExampleDatum :: [PaymentPubKeyHash] -> Datum
 multisignExampleDatum = Datum . PlutusTx.toBuiltinData . MajorityMultiSignDatum
 
-emuConfig :: [PubKeyHash] -> Emulator.EmulatorConfig
+emuConfig :: [PaymentPubKeyHash] -> Emulator.EmulatorConfig
 emuConfig signers =
   addressValueOptions
     [(signerPkh, lovelaceValueOf 1_000_000)]
@@ -125,14 +125,14 @@ nonSignerTraceWrapper contract = do
   _ <- Emulator.activateContractWallet nonSigner contract
   void $ Emulator.waitNSlots 3
 
-addressValueOptions :: [(Ledger.PubKeyHash, Value)] -> [(Scripts.ValidatorHash, Value, Datum)] -> Emulator.EmulatorConfig
+addressValueOptions :: [(Ledger.PaymentPubKeyHash, Value)] -> [(Scripts.ValidatorHash, Value, Datum)] -> Emulator.EmulatorConfig
 addressValueOptions walletAllocs validatorAllocs = Emulator.EmulatorConfig (Right [tx]) def def
   where
     tx :: Tx
     tx =
       P.mempty
         { txOutputs =
-            fmap (\(pkh, val) -> Ledger.TxOut (Ledger.pubKeyHashAddress pkh) val Nothing) walletAllocs
+            fmap (\(pkh, val) -> Ledger.TxOut (Ledger.pubKeyHashAddress pkh Nothing) val Nothing) walletAllocs
               <> fmap (\(vh, val, d) -> Ledger.TxOut (Ledger.scriptHashAddress vh) val $ Just $ Scripts.datumHash d) validatorAllocs
         , txData =
             Map.fromList $
@@ -142,13 +142,13 @@ addressValueOptions walletAllocs validatorAllocs = Emulator.EmulatorConfig (Righ
 
 -- TODO: Once walletPubKey is re-added to Plutus.Contract.Test import it thence
 -- and remove this definition (https://github.com/input-output-hk/plutus-apps/pull/105).
-walletPubKey :: Test.Wallet -> Ledger.PubKey
+walletPubKey :: Test.Wallet -> Ledger.PaymentPubKey
 walletPubKey w =
-  CardanoWallet.pubKey $
+  CardanoWallet.paymentPubKey $
     fromMaybe
       ( P.error $
           "Wallet.Emulator.Wallet.walletPubKey: Wallet "
             <> P.show w
             <> " is not a mock wallet"
       )
-      $ walletMockWallet w
+      $ walletToMockWallet w

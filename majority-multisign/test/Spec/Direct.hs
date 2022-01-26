@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Spec.Direct (tests) where
 
@@ -10,9 +11,11 @@ import Data.List.NonEmpty (NonEmpty ((:|)), toList)
 import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
 import Data.Semigroup.Foldable.Class (Foldable1 (fold1))
+import Data.String (IsString)
 import Data.Word (Word8)
-import Ledger.Crypto (PubKey (PubKey), PubKeyHash, pubKeyHash)
-import Ledger.Typed.Scripts qualified as TypedScripts
+import Ledger (PaymentPubKey (PaymentPubKey),
+               PaymentPubKeyHash (PaymentPubKeyHash, unPaymentPubKeyHash), paymentPubKeyHash)
+import Ledger.Crypto (PubKey (PubKey))
 import MajorityMultiSign.Contracts (multiSignTokenName)
 import MajorityMultiSign.OnChain (mkValidator, validator)
 import MajorityMultiSign.Schema qualified as Schema
@@ -50,12 +53,11 @@ import Test.Tasty.Plutus.TestData (
     spendValue
   ),
  )
-import Test.Tasty.Plutus.WithScript (
-  WithScript,
-  toTestValidator,
-  withValidator,
- )
+import Test.Tasty.Plutus.TestScript (mkTestValidator, toTestValidator)
+import Test.Tasty.Plutus.WithScript (WithScript, withTestScript)
 import Prelude hiding (pred)
+
+deriving newtype instance IsString PaymentPubKeyHash
 
 tests :: TestTree
 tests =
@@ -190,9 +192,9 @@ tests =
     ]
   where
     test desc =
-      withValidator
+      withTestScript
         desc
-        ( TypedScripts.mkTypedValidator @Schema.MajorityMultiSign
+        ( mkTestValidator
             ( $$(PlutusTx.compile [||mkValidator||])
                 `PlutusTx.applyCode` PlutusTx.liftCode initialParams
             )
@@ -200,15 +202,15 @@ tests =
         )
     validatorScript = getValidator (validator initialParams)
 
-arbitraryDatumFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignDatum
+arbitraryDatumFrom :: [PaymentPubKeyHash] -> Gen Schema.MajorityMultiSignDatum
 arbitraryDatumFrom sigs =
   Schema.MajorityMultiSignDatum . Natural.take Schema.maximumSigners
     <$> sublistOf sigs
 
 arbitraryTransactionFrom ::
-  [PubKeyHash] ->
-  [PubKeyHash] ->
-  [PubKeyHash] ->
+  [PaymentPubKeyHash] ->
+  [PaymentPubKeyHash] ->
+  [PaymentPubKeyHash] ->
   Gen
     ( Schema.MajorityMultiSignDatum
     , Schema.MajorityMultiSignRedeemer
@@ -220,7 +222,7 @@ arbitraryTransactionFrom currentSigs newSigs knownSigs = do
   redeemer <- arbitraryRedeemerFrom newSigs
   let value = oneshotValue
       context =
-        fold1 (pays :| (signedWith <$> currentSigs))
+        fold1 (pays :| (signedWith . unPaymentPubKeyHash <$> currentSigs))
       pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
         Just Schema.UseSignaturesAct -> paysToSelf value datum
         Just (Schema.UpdateKeysAct keys) ->
@@ -250,7 +252,7 @@ shrinkDatum :: Schema.MajorityMultiSignDatum -> [Schema.MajorityMultiSignDatum]
 shrinkDatum Schema.MajorityMultiSignDatum {signers} =
   Schema.MajorityMultiSignDatum <$> shrinkList (const []) signers
 
-arbitraryRedeemerFrom :: [PubKeyHash] -> Gen Schema.MajorityMultiSignRedeemer
+arbitraryRedeemerFrom :: [PaymentPubKeyHash] -> Gen Schema.MajorityMultiSignRedeemer
 arbitraryRedeemerFrom sigs =
   oneof
     [ pure Schema.UseSignaturesAct
@@ -270,29 +272,29 @@ cycled50 = take 50 . cycle
 cycled100 :: [a] -> [a]
 cycled100 = take 100 . cycle
 
-transactionSignatories :: [PubKeyHash]
+transactionSignatories :: [PaymentPubKeyHash]
 transactionSignatories = byteHash <$> [0 .. 20]
 
-possibleDatumSignatories :: [PubKeyHash]
+possibleDatumSignatories :: [PaymentPubKeyHash]
 possibleDatumSignatories = byteHash <$> [5 .. 25]
 
-possibleNewSignatories :: [PubKeyHash]
+possibleNewSignatories :: [PaymentPubKeyHash]
 possibleNewSignatories = byteHash <$> [10 .. 30]
 
-byteHash :: Word8 -> PubKeyHash
-byteHash = pubKeyHash . PubKey . fromBytes . ByteString.singleton
+byteHash :: Word8 -> PaymentPubKeyHash
+byteHash = paymentPubKeyHash . PaymentPubKey . PubKey . fromBytes . ByteString.singleton
 
 type TestPurpose = 'ForSpending Schema.MajorityMultiSignDatum Schema.MajorityMultiSignRedeemer
 
-testFullUse :: String -> [PubKeyHash] -> WithScript TestPurpose ()
+testFullUse :: String -> [PaymentPubKeyHash] -> WithScript TestPurpose ()
 testFullUse description signatories =
   testPartialUse description True signatories signatories
 
 testPartialUse ::
   String ->
   Bool ->
-  [PubKeyHash] ->
-  [PubKeyHash] ->
+  [PaymentPubKeyHash] ->
+  [PaymentPubKeyHash] ->
   WithScript TestPurpose ()
 testPartialUse description positive currentSignatories knownSignatories =
   (if positive then shouldValidate else shouldn'tValidate)
@@ -300,7 +302,7 @@ testPartialUse description positive currentSignatories knownSignatories =
     (SpendingTest datum Schema.UseSignaturesAct mempty)
     ( fold1
         ( paysToSelf oneshotValue datum
-            :| (signedWith <$> currentSignatories)
+            :| (signedWith . unPaymentPubKeyHash <$> currentSignatories)
         )
     )
   where
@@ -309,9 +311,9 @@ testPartialUse description positive currentSignatories knownSignatories =
 testUpdate ::
   String ->
   Bool ->
-  [PubKeyHash] ->
-  [PubKeyHash] ->
-  [PubKeyHash] ->
+  [PaymentPubKeyHash] ->
+  [PaymentPubKeyHash] ->
+  [PaymentPubKeyHash] ->
   WithScript TestPurpose ()
 testUpdate description positive currentSignatories newSignatories knownSignatories =
   (if positive then shouldValidate else shouldn'tValidate)
@@ -319,40 +321,40 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
     ( fold1
         ( paysToSelf oneshotValue newDatum
-            :| (signedWith <$> currentSignatories)
+            :| (signedWith . unPaymentPubKeyHash <$> currentSignatories)
         )
     )
   where
     oldDatum = Schema.MajorityMultiSignDatum knownSignatories
     newDatum = Schema.MajorityMultiSignDatum newSignatories
 
-testMissingOutputUse :: String -> NonEmpty PubKeyHash -> WithScript TestPurpose ()
+testMissingOutputUse :: String -> NonEmpty PaymentPubKeyHash -> WithScript TestPurpose ()
 testMissingOutputUse description signatories =
   shouldn'tValidate
     description
     (SpendingTest datum Schema.UseSignaturesAct mempty)
-    (sconcat $ signedWith <$> signatories)
+    (sconcat $ signedWith . unPaymentPubKeyHash <$> signatories)
   where
     datum = Schema.MajorityMultiSignDatum (toList signatories)
 
 testMissingOutputUpdate ::
   String ->
-  NonEmpty PubKeyHash ->
-  [PubKeyHash] ->
+  NonEmpty PaymentPubKeyHash ->
+  [PaymentPubKeyHash] ->
   WithScript TestPurpose ()
 testMissingOutputUpdate description signatories newSignatories =
   shouldn'tValidate
     description
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
-    (sconcat $ signedWith <$> signatories)
+    (sconcat $ signedWith . unPaymentPubKeyHash <$> signatories)
   where
     oldDatum = Schema.MajorityMultiSignDatum (toList signatories)
 
 testProperty ::
   String ->
-  [PubKeyHash] ->
-  [PubKeyHash] ->
-  [PubKeyHash] ->
+  [PaymentPubKeyHash] ->
+  [PaymentPubKeyHash] ->
+  [PaymentPubKeyHash] ->
   WithScript TestPurpose ()
 testProperty desc currentSignatories newSignatories knownSignatories =
   scriptProperty

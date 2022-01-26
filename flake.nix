@@ -99,7 +99,6 @@
               ps.measures
               ps.orphans-deriving-via
               ps.playground-common
-              ps.plutus-apps
               ps.plutus-contract
               ps.plutus-chain-index
               ps.plutus-core

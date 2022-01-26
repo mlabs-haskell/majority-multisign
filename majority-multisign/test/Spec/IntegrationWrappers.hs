@@ -12,8 +12,8 @@ module Spec.IntegrationWrappers (
 
 import Control.Monad (void)
 import Data.Void (Void)
-import Ledger (PubKey, ScriptContext)
 import Ledger qualified
+import Ledger (PaymentPubKey, ScriptContext)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.TxConstraints qualified as TxConstraints
 import Ledger.Scripts qualified as Scripts
@@ -28,13 +28,13 @@ import PlutusTx.Prelude
 
 data IntegrationParams = IntegrationParams
   { mmsId :: MajorityMultiSignIdentifier
-  , ownPubKey :: PubKey
-  , pubKeys :: [PubKey]
+  , ownPubKey :: PaymentPubKey
+  , pubKeys :: [PaymentPubKey]
   }
 
 correctContract :: IntegrationParams -> Contract w s ContractError ()
 correctContract IntegrationParams {mmsId, ownPubKey, pubKeys} = do
-  let pkh = Ledger.pubKeyHash ownPubKey
+  let pkh = Ledger.paymentPubKeyHash ownPubKey
       value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
       tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh value
@@ -44,10 +44,11 @@ correctContract IntegrationParams {mmsId, ownPubKey, pubKeys} = do
 -- | Attempts to mint a value without invoking the multisign contract at all - should always fail
 bypassContract :: IntegrationParams -> Contract w s ContractError ()
 bypassContract IntegrationParams {mmsId, ownPubKey} = do
-  let pkh = Ledger.pubKeyHash ownPubKey
+  let pkh = Ledger.paymentPubKeyHash ownPubKey
       value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
-      tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh value
+      tx = TxConstraints.mustMintValue value
+           <> TxConstraints.mustPayToPubKey pkh value
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 

@@ -5,7 +5,6 @@ source-repository-package
     doc
     freer-extras
     playground-common
-    plutus-apps
     plutus-chain-index
     plutus-chain-index-core
     plutus-contract
@@ -23,8 +22,9 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/Liqwid-Labs/plutus-extra.git
-  tag: 285b7030f49cd2e3b46bfe21f21306659985bf92
+  tag: 4722305495c8c4b03ff06debf0f4a041768a5467
   subdir:
+    plutus-extra
     plutus-golden
     plutus-laws
     plutus-list
@@ -40,7 +40,6 @@ source-repository-package
 -- re-update this section from the template when you do an upgrade.
 
 ---------- *replace here* ----------------------------------------------------------------------
-
 -- The only sensible test display option
 test-show-details: streaming
 
@@ -260,7 +259,7 @@ source-repository-package
 source-repository-package
  type: git
  location: https://github.com/input-output-hk/plutus
- tag: 2721c59fd2302b75c4138456c29fd5b509e8340a
+ tag: 65bad0fd53e432974c3c203b1b1999161b6c2dce
  subdir:
    plutus-ledger-api
    word-array
