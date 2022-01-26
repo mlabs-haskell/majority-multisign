@@ -21,7 +21,7 @@ import Ledger.Typed.Scripts qualified as TypedScripts
 import MajorityMultiSign.Contracts (submitSignedTxConstraintsWith)
 import MajorityMultiSign.OnChain (checkMultisigned)
 import MajorityMultiSign.Schema (MajorityMultiSignIdentifier)
-import Plutus.Contract (Contract, ContractError, awaitTxConfirmed, submitTxConstraintsWith, utxosAt)
+import Plutus.Contract (Contract, ContractError, awaitTxConfirmed, submitTxConstraintsWith)
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx qualified
