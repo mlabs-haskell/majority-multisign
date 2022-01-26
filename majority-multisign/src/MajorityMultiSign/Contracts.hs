@@ -2,6 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module MajorityMultiSign.Contracts (
+  addMinLovelace,
   combinations,
   initialize,
   multiSignTokenName,

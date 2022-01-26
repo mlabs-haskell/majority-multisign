@@ -18,11 +18,10 @@ import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.TxConstraints qualified as TxConstraints
 import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts qualified as TypedScripts
-import MajorityMultiSign.Contracts (submitSignedTxConstraintsWith)
+import MajorityMultiSign.Contracts (addMinLovelace, submitSignedTxConstraintsWith)
 import MajorityMultiSign.OnChain (checkMultisigned)
 import MajorityMultiSign.Schema (MajorityMultiSignIdentifier)
 import Plutus.Contract (Contract, ContractError, awaitTxConfirmed, submitTxConstraintsWith)
-import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx qualified
 import PlutusTx.Prelude
@@ -38,7 +37,7 @@ correctContract IntegrationParams {mmsId, ownPubKey, pubKeys} = do
   let pkh = Ledger.paymentPubKeyHash ownPubKey
       value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
-      tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh (value <> lovelaceValueOf 2_000_000)
+      tx = TxConstraints.mustMintValue value <> TxConstraints.mustPayToPubKey pkh (addMinLovelace value)
   ledgerTx <- submitSignedTxConstraintsWith @Void mmsId pubKeys lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 
@@ -50,7 +49,7 @@ bypassContract IntegrationParams {mmsId, ownPubKey} = do
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
       tx =
         TxConstraints.mustMintValue value
-          <> TxConstraints.mustPayToPubKey pkh (value <> lovelaceValueOf 2_000_000)
+          <> TxConstraints.mustPayToPubKey pkh (addMinLovelace value)
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 
