@@ -12,8 +12,8 @@ module Spec.IntegrationWrappers (
 
 import Control.Monad (void)
 import Data.Void (Void)
-import Ledger qualified
 import Ledger (PaymentPubKey, ScriptContext)
+import Ledger qualified
 import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.TxConstraints qualified as TxConstraints
 import Ledger.Scripts qualified as Scripts
@@ -48,8 +48,9 @@ bypassContract IntegrationParams {mmsId, ownPubKey} = do
   let pkh = Ledger.paymentPubKeyHash ownPubKey
       value = Value.singleton (mintingPolicySymbol mmsId) "Token" 1
       lookups = Constraints.mintingPolicy $ mintingPolicy mmsId
-      tx = TxConstraints.mustMintValue value
-           <> TxConstraints.mustPayToPubKey pkh (value <> lovelaceValueOf 2_000_000)
+      tx =
+        TxConstraints.mustMintValue value
+          <> TxConstraints.mustPayToPubKey pkh (value <> lovelaceValueOf 2_000_000)
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 

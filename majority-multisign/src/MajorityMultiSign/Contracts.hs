@@ -20,17 +20,8 @@ import Data.Monoid (Last (Last))
 import Data.Row (Row)
 import Data.Text (Text)
 import Data.Void (Void)
-import Ledger (
-  AssetClass,
-  CardanoTx,
-  ChainIndexTxOut,
-  TokenName,
-  TxOutRef,
-  paymentPubKeyHash,
-  validatorHash,
- )
+import Ledger (AssetClass, CardanoTx, ChainIndexTxOut, PaymentPubKey, PaymentPubKeyHash, TokenName, TxOutRef, paymentPubKeyHash, validatorHash)
 import Ledger qualified
-import Ledger (PaymentPubKey, PaymentPubKeyHash)
 import Ledger.Constraints (ScriptLookups, TxConstraints, UnbalancedTx)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Scripts qualified as Scripts

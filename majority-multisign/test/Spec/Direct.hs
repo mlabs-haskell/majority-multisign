@@ -13,8 +13,11 @@ import Data.Semigroup (sconcat)
 import Data.Semigroup.Foldable.Class (Foldable1 (fold1))
 import Data.String (IsString)
 import Data.Word (Word8)
-import Ledger (PaymentPubKey (PaymentPubKey),
-               PaymentPubKeyHash (PaymentPubKeyHash, unPaymentPubKeyHash), paymentPubKeyHash)
+import Ledger (
+  PaymentPubKey (PaymentPubKey),
+  PaymentPubKeyHash (PaymentPubKeyHash, unPaymentPubKeyHash),
+  paymentPubKeyHash,
+ )
 import Ledger.Crypto (PubKey (PubKey))
 import MajorityMultiSign.Contracts (multiSignTokenName)
 import MajorityMultiSign.OnChain (mkValidator, validator)

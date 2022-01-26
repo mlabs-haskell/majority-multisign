@@ -28,7 +28,6 @@ instance Arbitrary Schema.SetSignaturesParams where
     Schema.SetSignaturesParams
       <$> arbitrary <*> listOf arbitrary <*> listOf arbitrary
 
-
 deriving newtype instance Arbitrary PaymentPubKey
 deriving newtype instance Arbitrary PaymentPubKeyHash
 
