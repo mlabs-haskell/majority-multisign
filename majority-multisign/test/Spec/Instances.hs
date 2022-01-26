@@ -2,6 +2,7 @@
 
 module Spec.Instances () where
 
+import Ledger (PaymentPubKey (PaymentPubKey), PaymentPubKeyHash (PaymentPubKeyHash))
 import MajorityMultiSign.Schema qualified as Schema
 import Plutus.V1.Ledger.Value (AssetClass, assetClass)
 import Test.QuickCheck (Arbitrary (arbitrary), Gen, listOf, oneof)
@@ -26,6 +27,9 @@ instance Arbitrary Schema.SetSignaturesParams where
   arbitrary =
     Schema.SetSignaturesParams
       <$> arbitrary <*> listOf arbitrary <*> listOf arbitrary
+
+deriving newtype instance Arbitrary PaymentPubKey
+deriving newtype instance Arbitrary PaymentPubKeyHash
 
 arbitraryAssetClass :: Gen AssetClass
 arbitraryAssetClass = assetClass <$> arbitrary <*> arbitrary
