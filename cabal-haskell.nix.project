@@ -28,8 +28,10 @@ source-repository-package
     plutus-list
     plutus-numeric
     plutus-pretty
+    plutus-context-builder
     quickcheck-plutus-instances
     tasty-plutus
+    plutus-extra
 
 -- Plutarch
 source-repository-package

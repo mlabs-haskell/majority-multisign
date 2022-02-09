@@ -70,51 +70,53 @@
             nativeBuildInputs =
               [ pkgs.cabal-install pkgs.hlint pkgs.haskellPackages.fourmolu ];
 
-            additional = ps: [
-              ps.tasty-plutus
-              ps.quickcheck-plutus-instances
-              ps.plutus-laws
-              ps.plutus-list
-              ps.plutus-golden
+            additional = ps: with ps; [
+              tasty-plutus
+              plutus-extra
+              plutus-context-builder
+              quickcheck-plutus-instances
+              plutus-laws
+              plutus-list
+              plutus-golden
 
-              ps.plutarch
+              plutarch
 
-              ps.base-deriving-via
-              ps.cardano-addresses
-              ps.cardano-addresses-cli
-              ps.cardano-binary
-              ps.cardano-crypto
-              ps.cardano-crypto-class
-              ps.cardano-crypto-praos
-              ps.cardano-crypto-wrapper
-              ps.cardano-ledger-alonzo
-              ps.cardano-ledger-byron
-              ps.cardano-ledger-core
-              ps.cardano-ledger-pretty
-              ps.cardano-ledger-shelley
-              ps.cardano-ledger-shelley-ma
-              ps.cardano-prelude
-              ps.cardano-slotting
-              ps.flat
-              ps.freer-extras
-              ps.goblins
-              ps.measures
-              ps.orphans-deriving-via
-              ps.playground-common
-              ps.plutus-contract
-              ps.plutus-chain-index
-              ps.plutus-core
-              ps.plutus-ledger
-              ps.plutus-ledger-api
-              ps.plutus-pab
-              ps.plutus-playground-server
-              ps.plutus-tx
-              ps.plutus-tx-plugin
-              ps.plutus-use-cases
-              ps.prettyprinter-configurable
-              ps.quickcheck-dynamic
-              ps.Win32-network
-              ps.word-array
+              base-deriving-via
+              cardano-addresses
+              cardano-addresses-cli
+              cardano-binary
+              cardano-crypto
+              cardano-crypto-class
+              cardano-crypto-praos
+              cardano-crypto-wrapper
+              cardano-ledger-alonzo
+              cardano-ledger-byron
+              cardano-ledger-core
+              cardano-ledger-pretty
+              cardano-ledger-shelley
+              cardano-ledger-shelley-ma
+              cardano-prelude
+              cardano-slotting
+              flat
+              freer-extras
+              goblins
+              measures
+              orphans-deriving-via
+              playground-common
+              plutus-contract
+              plutus-chain-index
+              plutus-core
+              plutus-ledger
+              plutus-ledger-api
+              plutus-pab
+              plutus-playground-server
+              plutus-tx
+              plutus-tx-plugin
+              plutus-use-cases
+              prettyprinter-configurable
+              quickcheck-dynamic
+              Win32-network
+              word-array
             ];
           };
           sha256map = pkgs.lib.foldr (data: tab:
