@@ -34,17 +34,29 @@ import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (Natural)
 import PlutusTx.Prelude
 
+
+import Plutarch.FFI (unsafeForeignExport)
+
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
+  (Data -> Data -> BuiltinBool) ->
   MajorityMultiSignValidatorParams ->
-  MajorityMultiSignDatum ->
-  MajorityMultiSignRedeemer ->
-  ScriptContext ->
-  Bool
-mkValidator params dat red ctx =
-  hasCorrectToken params ctx (getExpectedDatum red dat)
-    && isSufficientlySigned red dat ctx
-    && isUnderSizeLimit red dat
+  Data ->
+  Data ->
+  Data ->
+  ()
+mkValidator sizeF params datD redD ctxD =
+  let dat :: MajorityMultiSignDatum
+      dat = unsafeFromData datD
+      red :: MajorityMultiSignRedeemer
+      red = unsafeFromData redD
+      ctx :: ScriptContext
+      ctx = unsafeFromData ctxD 
+  in 
+    check $
+      hasCorrectToken params ctx (getExpectedDatum red dat)
+       && isSufficientlySigned red dat ctx
+       && fromBuiltin (sizeF redD datD)
 
 {-# INLINEABLE removeSigners #-}
 removeSigners :: [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
@@ -63,6 +75,15 @@ getExpectedDatum (UpdateKeysAct keys) datum = datum {signers = keys}
 hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 hasNewSignatures UseSignaturesAct _ _ = True
 hasNewSignatures (UpdateKeysAct keys) MajorityMultiSignDatum {signers} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
+
+{-
+{-# INLINABLE getContinuingOutputs #-}
+getContinuingOutputs :: ScriptContext -> [TxOut]
+getContinuingOutputs ctx | Just TxInInfo{txInInfoResolved=TxOut{txOutAddress}} <- findOwnInput ctx = filter (f txOutAddress) (txInfoOutputs $ scriptContextTxInfo ctx)
+    where
+        f addr TxOut{txOutAddress=otherAddress} = addr == otherAddress
+getContinuingOutputs _ = traceError "Lf" -- "Can't get any continuing outputs"
+-}
 
 -- | Checks the script has the correct token (containing the asset we want), forwards it to the right place, and has the datum we expect
 {-# INLINEABLE hasCorrectToken #-}
@@ -117,10 +138,30 @@ isUnderSizeLimit (UpdateKeysAct keys) MajorityMultiSignDatum {signers} =
   traceIfFalse "Datum too large" (Natural.length signers <= maximumSigners)
     && traceIfFalse "Redeemer too large" (Natural.length keys <= maximumSigners)
 
+-- isUnderSizeLimit' :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> Bool
+isUnderSizeLimitCompiled :: CompiledCode (Data -> Data -> BuiltinBool)
+isUnderSizeLimitCompiled = unsafeForeignExport isUnderSizeLimit'
+
+isUnderSizeLimit' :: ClosedTerm (PAsData PMajorityMultiSignRedeemer :--> PAsData PMajorityMultiSignDatum :--> PBool)
+isUnderSizeLimit' = plam $ \red datum -> unTermCont $ do
+  PMajorityMultiSignDatum signersRec <- TermCont $ pmatch (pfromData datum)
+  signkeys <- TermCont $ plet (pfield @"_0" signersRec)
+  datumValid <- TermCont $ plet $ ptraceIfFalse "Datum too large" $ plength # signkeys #<= pmaximumSigners
+  
+  pure $ pmatch (pfromData red) $ \case
+    PUseSignaturesAct _ -> datumValid
+    PUpdateKeysAct keysRec -> unTermCont $
+      flip (pif datumValid) datumValid $ unTermCont $ do
+        keys <- TermCont $ plet (pfield @"_0" keysRec)
+        pure $ ptraceIfFalse "Redeemer too large" $ plength # keys #<= pmaximumSigners
+
+
 inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
 inst params =
   TypedScripts.mkTypedValidator @MajorityMultiSign
-    ($$(PlutusTx.compile [||mkValidator||]) `PlutusTx.applyCode` PlutusTx.liftCode params)
+    ($$(PlutusTx.compile [||mkValidator||])
+      `PlutusTx.applyCode` isUnderSizeLimitCompiled
+      `PlutusTx.applyCode` PlutusTx.liftCode params)
     $$(PlutusTx.compile [||wrap||])
   where
     wrap = TypedScripts.wrapValidator @MajorityMultiSignDatum @MajorityMultiSignRedeemer

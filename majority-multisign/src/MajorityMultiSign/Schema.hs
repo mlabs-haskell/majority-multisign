@@ -60,6 +60,9 @@ signReq = [frac| (1, 2) |] -- 0.5
 maximumSigners :: Natural
 maximumSigners = [nat| 10 |]
 
+pmaximumSigners :: ClosedTerm PInteger
+pmaximumSigners = 10
+
 {-# INLINEABLE getMinSigners #-}
 
 -- | Given a list of Signers, gets the minimum number of signers needed for a transaction to be valid
@@ -134,11 +137,36 @@ PlutusTx.makeIsDataIndexed
   ''MajorityMultiSignDatum
   [('MajorityMultiSignDatum, 0)]
 
+newtype PMajorityMultiSignDatum (s :: S) =
+  PMajorityMultiSignDatum (Term s (PDataRecord
+    '["_0" ':= PBuiltinList PPubKeyHash]
+  ))
+  deriving
+    ( PMatch
+    , PIsData
+    , PDataFields
+    )
+    via PIsDataReprInstances PMajorityMultiSignDatum
+  deriving stock (GHC.Generic)
+  deriving anyclass (Generic, PIsDataRepr)
+
 -- | Redeemer of the validator, allowing for simple use (not modifying datum), or key updating
 data MajorityMultiSignRedeemer
   = UseSignaturesAct
   | UpdateKeysAct [PubKeyHash]
   deriving stock (Eq, Show)
+
+data PMajorityMultiSignRedeemer (s :: S)
+  = PUseSignaturesAct (Term s (PDataRecord '[]))
+  | PUpdateKeysAct (Term s (PDataRecord '["_0" ':= PList PPubKeyHash]))
+  deriving
+    ( PMatch
+    , PIsData
+    , PDataFields
+    )
+    via PIsDataReprInstances PMajorityMultiSignDatum
+  deriving stock (GHC.Generic)
+  deriving anyclass (Generic, PIsDataRepr)
 
 PlutusTx.makeIsDataIndexed
   ''MajorityMultiSignRedeemer

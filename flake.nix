@@ -77,6 +77,8 @@
               ps.plutus-list
               ps.plutus-golden
 
+              ps.plutarch
+
               ps.base-deriving-via
               ps.cardano-addresses
               ps.cardano-addresses-cli
