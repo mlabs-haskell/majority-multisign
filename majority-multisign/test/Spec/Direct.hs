@@ -6,7 +6,7 @@
 module Spec.Direct (tests) where
 
 import Data.ByteString qualified as ByteString
-import Data.List (nub, (\\))
+import Data.List (nub)
 import Data.List.NonEmpty (NonEmpty ((:|)), toList)
 import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
@@ -389,8 +389,7 @@ testProperty desc currentSignatories newSignatories knownSignatories =
         , spendOutcome = Pass
         }
     grade (datum@Schema.MajorityMultiSignDatum {signers}, redeemer@(Schema.UpdateKeysAct keys), value, context)
-      | let newKeys = keys \\ signers
-        , newKeys `subset` currentSignatories =
+      | keys `subset` (currentSignatories ++ signers) =
         ItemsForSpending
           { spendDatum = datum
           , spendRedeemer = redeemer
