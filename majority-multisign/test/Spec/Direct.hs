@@ -30,11 +30,12 @@ import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (nat)
 import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.Plutus.Context (
+import Test.Plutus.ContextBuilder (
   ContextBuilder,
   Purpose (ForSpending),
-  paysToSelf,
+  ValidatorUTXO (ValidatorUTXO),
   signedWith,
+  validatorOutput,
  )
 import Test.Tasty.Plutus.Script.Property (scriptProperty)
 import Test.Tasty.Plutus.Script.Size (fitsInto, fitsOnChain, kbytes)
@@ -225,11 +226,11 @@ arbitraryTransactionFrom currentSigs newSigs knownSigs = do
   redeemer <- arbitraryRedeemerFrom newSigs
   let value = oneshotValue
       context =
-        fold1 (pays :| (signedWith . unPaymentPubKeyHash <$> currentSigs))
+        fold1 (pays :| (signedWith "signature" . unPaymentPubKeyHash <$> currentSigs))
       pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
-        Just Schema.UseSignaturesAct -> paysToSelf value datum
+        Just Schema.UseSignaturesAct -> validatorOutput "payout" (ValidatorUTXO datum value)
         Just (Schema.UpdateKeysAct keys) ->
-          paysToSelf value (Schema.MajorityMultiSignDatum keys)
+          validatorOutput "MMS" (ValidatorUTXO (Schema.MajorityMultiSignDatum keys) value)
         Nothing -> error "Unexpected redeemer type"
   pure (datum, redeemer, value, context)
 
@@ -304,8 +305,8 @@ testPartialUse description positive currentSignatories knownSignatories =
     description
     (SpendingTest datum Schema.UseSignaturesAct mempty)
     ( fold1
-        ( paysToSelf oneshotValue datum
-            :| (signedWith . unPaymentPubKeyHash <$> currentSignatories)
+        ( validatorOutput "MMS" (ValidatorUTXO datum oneshotValue)
+            :| (signedWith "signature" . unPaymentPubKeyHash <$> currentSignatories)
         )
     )
   where
@@ -323,8 +324,8 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
     description
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
     ( fold1
-        ( paysToSelf oneshotValue newDatum
-            :| (signedWith . unPaymentPubKeyHash <$> currentSignatories)
+        ( validatorOutput "MMS" (ValidatorUTXO newDatum oneshotValue)
+            :| (signedWith "signature" . unPaymentPubKeyHash <$> currentSignatories)
         )
     )
   where
@@ -336,7 +337,7 @@ testMissingOutputUse description signatories =
   shouldn'tValidate
     description
     (SpendingTest datum Schema.UseSignaturesAct mempty)
-    (sconcat $ signedWith . unPaymentPubKeyHash <$> signatories)
+    (sconcat $ signedWith "signature" . unPaymentPubKeyHash <$> signatories)
   where
     datum = Schema.MajorityMultiSignDatum (toList signatories)
 
@@ -349,7 +350,7 @@ testMissingOutputUpdate description signatories newSignatories =
   shouldn'tValidate
     description
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
-    (sconcat $ signedWith . unPaymentPubKeyHash <$> signatories)
+    (sconcat $ signedWith "signature" . unPaymentPubKeyHash <$> signatories)
   where
     oldDatum = Schema.MajorityMultiSignDatum (toList signatories)
 
