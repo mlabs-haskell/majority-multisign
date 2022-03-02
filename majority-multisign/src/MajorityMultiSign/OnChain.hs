@@ -13,7 +13,7 @@ module MajorityMultiSign.OnChain (
 ) where
 
 import Data.List.Extra (firstJust)
-import Ledger (Address, Datum (Datum), PubKeyHash, ScriptContext (scriptContextTxInfo), txSignedBy)
+import Ledger (Address, Datum (Datum), PaymentPubKeyHash (unPaymentPubKeyHash), ScriptContext (scriptContextTxInfo), txSignedBy)
 import Ledger qualified
 import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts qualified as TypedScripts
@@ -59,7 +59,7 @@ mkValidator sizeF params datD redD ctxD =
        && fromBuiltin (sizeF redD datD)
 
 {-# INLINEABLE removeSigners #-}
-removeSigners :: [PubKeyHash] -> [PubKeyHash] -> [PubKeyHash]
+removeSigners :: [PaymentPubKeyHash] -> [PaymentPubKeyHash] -> [PaymentPubKeyHash]
 removeSigners [] _ = []
 removeSigners xs [] = xs -- Not strictly needed, but more efficient
 removeSigners (x : xs) ys = if x `elem` ys then removeSigners xs ys else x : removeSigners xs ys
@@ -74,7 +74,8 @@ getExpectedDatum (UpdateKeysAct keys) datum = datum {signers = keys}
 {-# INLINEABLE hasNewSignatures #-}
 hasNewSignatures :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> ScriptContext -> Bool
 hasNewSignatures UseSignaturesAct _ _ = True
-hasNewSignatures (UpdateKeysAct keys) MajorityMultiSignDatum {signers} ctx = all (txSignedBy $ scriptContextTxInfo ctx) $ keys `removeSigners` signers
+hasNewSignatures (UpdateKeysAct keys) MajorityMultiSignDatum {signers} ctx =
+  all (txSignedBy (scriptContextTxInfo ctx) . unPaymentPubKeyHash) $ keys `removeSigners` signers
 
 {-
 {-# INLINABLE getContinuingOutputs #-}
@@ -123,8 +124,8 @@ isSufficientlySigned red dat@MajorityMultiSignDatum {signers} ctx =
   traceIfFalse "Not enough signatures" (Natural.length signersPresent >= minSigners)
     && traceIfFalse "Missing signatures from new keys" (hasNewSignatures red dat ctx)
   where
-    signersPresent, signersUnique :: [PubKeyHash]
-    signersPresent = filter (txSignedBy $ scriptContextTxInfo ctx) signersUnique
+    signersPresent, signersUnique :: [PaymentPubKeyHash]
+    signersPresent = filter (txSignedBy (scriptContextTxInfo ctx) . unPaymentPubKeyHash) signersUnique
     signersUnique = nub signers
     minSigners :: Natural
     minSigners = getMinSigners signersUnique

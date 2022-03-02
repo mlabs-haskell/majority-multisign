@@ -72,11 +72,9 @@
 
             additional = ps: with ps; [
               tasty-plutus
-              plutus-extra
-              plutus-context-builder
               quickcheck-plutus-instances
+              plutus-collection
               plutus-laws
-              plutus-list
               plutus-golden
 
               plutarch

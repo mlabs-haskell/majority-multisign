@@ -30,10 +30,9 @@ import Data.OpenApi.Schema qualified as OpenApi
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
-import Ledger.Crypto (PubKey)
+import Ledger (PaymentPubKey, PaymentPubKeyHash)
 import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Endpoint, type (.\/))
-import Plutus.V1.Ledger.Api (PubKeyHash)
 import Plutus.V1.Ledger.Value (AssetClass, CurrencySymbol (CurrencySymbol), TokenName (TokenName))
 import PlutusTx qualified
 import PlutusTx.List.Natural qualified as Natural
@@ -122,7 +121,7 @@ PlutusTx.makeLift ''MajorityMultiSignValidatorParams
   This is also used as the params to the initialize endpoint
 -}
 newtype MajorityMultiSignDatum = MajorityMultiSignDatum
-  { signers :: [PubKeyHash]
+  { signers :: [PaymentPubKeyHash]
   }
   deriving stock (Eq, Generic, Show)
 
@@ -153,7 +152,7 @@ newtype PMajorityMultiSignDatum (s :: S) =
 -- | Redeemer of the validator, allowing for simple use (not modifying datum), or key updating
 data MajorityMultiSignRedeemer
   = UseSignaturesAct
-  | UpdateKeysAct [PubKeyHash]
+  | UpdateKeysAct [PaymentPubKeyHash]
   deriving stock (Eq, Show)
 
 data PMajorityMultiSignRedeemer (s :: S)
@@ -175,8 +174,8 @@ PlutusTx.makeIsDataIndexed
 -- | Params to the set signature endpoint
 data SetSignaturesParams = SetSignaturesParams
   { mmsIdentifier :: MajorityMultiSignIdentifier
-  , newKeys :: [PubKeyHash]
-  , pubKeys :: [PubKey]
+  , newKeys :: [PaymentPubKeyHash]
+  , pubKeys :: [PaymentPubKey]
   }
   deriving stock (Eq, Generic, Show)
 
