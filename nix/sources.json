@@ -59,18 +59,6 @@
         "url": "https://github.com/input-output-hk/cardano-ledger/archive/1a9ec4ae9e0b09d54e49b2a40c4ead37edadcce5.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "cardano-ledger": {
-        "branch": "master",
-        "description": "The ledger implementation and specifications of the Cardano blockchain.",
-        "homepage": "",
-        "owner": "input-output-hk",
-        "repo": "cardano-ledger",
-        "rev": "1a9ec4ae9e0b09d54e49b2a40c4ead37edadcce5",
-        "sha256": "0avzyiqq0m8njd41ck9kpn992yq676b1az9xs77977h7cf85y4wm",
-        "type": "tarball",
-        "url": "https://github.com/input-output-hk/cardano-ledger/archive/1a9ec4ae9e0b09d54e49b2a40c4ead37edadcce5.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
     "cardano-node": {
         "branch": "master",
         "description": "The core component that is used to participate in a Cardano decentralised blockchain.",
@@ -237,6 +225,18 @@
         "sha256": "18xk7r0h2pxrbx76d6flsxifh0a9rz1cj1rjqs1pbs5kdmy8b7kx",
         "type": "tarball",
         "url": "https://github.com/input-output-hk/ouroboros-network/archive/d2d219a86cda42787325bb8c20539a75c2667132.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "plutarch": {
+        "branch": "master",
+        "description": "Typed eDSL for writing UPLC  /ˈpluː.tɑːk/",
+        "homepage": "",
+        "owner": "Plutonomicon",
+        "repo": "plutarch",
+        "rev": "55bb381a6cd5cd40a0c77f1005e93c6f60e865fe",
+        "sha256": "0bq69qb9k2lnwl3sqayjg0k0g2jghmigj3kgq4r20ayb88l4iall",
+        "type": "tarball",
+        "url": "https://github.com/Plutonomicon/plutarch/archive/55bb381a6cd5cd40a0c77f1005e93c6f60e865fe.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus": {
