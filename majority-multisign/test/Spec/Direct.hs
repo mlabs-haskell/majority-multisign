@@ -29,8 +29,6 @@ import Plutus.V1.Ledger.Value (AssetClass, Value, assetClass, assetClassValue)
 import PlutusTx qualified
 import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (nat)
-import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
-import Test.Tasty (TestTree, testGroup)
 import Test.Plutus.ContextBuilder (
   ContextBuilder,
   Purpose (ForSpending),
@@ -38,6 +36,8 @@ import Test.Plutus.ContextBuilder (
   signedWith,
   validatorOutput,
  )
+import Test.QuickCheck (Gen, oneof, shrinkList, sublistOf)
+import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Plutus.Script.Property (scriptProperty)
 import Test.Tasty.Plutus.Script.Size (fitsInto, fitsOnChain, kbytes)
 import Test.Tasty.Plutus.Script.Unit (
