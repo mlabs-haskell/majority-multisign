@@ -12,6 +12,7 @@ import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
 import Data.Semigroup.Foldable.Class (Foldable1 (fold1))
 import Data.String (IsString)
+import Data.Text qualified as Text
 import Data.Word (Word8)
 import Ledger (
   PaymentPubKey (PaymentPubKey),
@@ -226,7 +227,7 @@ arbitraryTransactionFrom currentSigs newSigs knownSigs = do
   redeemer <- arbitraryRedeemerFrom newSigs
   let value = oneshotValue
       context =
-        fold1 (pays :| (signedWith "signature" . unPaymentPubKeyHash <$> currentSigs))
+        fold1 (pays :| (signedWith' <$> currentSigs))
       pays = case PlutusTx.fromData (PlutusTx.toData redeemer) of
         Just Schema.UseSignaturesAct -> validatorOutput "payout" (ValidatorUTXO datum value)
         Just (Schema.UpdateKeysAct keys) ->
@@ -306,7 +307,7 @@ testPartialUse description positive currentSignatories knownSignatories =
     (SpendingTest datum Schema.UseSignaturesAct mempty)
     ( fold1
         ( validatorOutput "MMS" (ValidatorUTXO datum oneshotValue)
-            :| (signedWith "signature" . unPaymentPubKeyHash <$> currentSignatories)
+            :| (signedWith' <$> currentSignatories)
         )
     )
   where
@@ -325,7 +326,7 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
     ( fold1
         ( validatorOutput "MMS" (ValidatorUTXO newDatum oneshotValue)
-            :| (signedWith "signature" . unPaymentPubKeyHash <$> currentSignatories)
+            :| (signedWith' <$> currentSignatories)
         )
     )
   where
@@ -337,7 +338,7 @@ testMissingOutputUse description signatories =
   shouldn'tValidate
     description
     (SpendingTest datum Schema.UseSignaturesAct mempty)
-    (sconcat $ signedWith "signature" . unPaymentPubKeyHash <$> signatories)
+    (sconcat $ signedWith' <$> signatories)
   where
     datum = Schema.MajorityMultiSignDatum (toList signatories)
 
@@ -350,7 +351,7 @@ testMissingOutputUpdate description signatories newSignatories =
   shouldn'tValidate
     description
     (SpendingTest oldDatum (Schema.UpdateKeysAct newSignatories) mempty)
-    (sconcat $ signedWith "signature" . unPaymentPubKeyHash <$> signatories)
+    (sconcat $ signedWith' <$> signatories)
   where
     oldDatum = Schema.MajorityMultiSignDatum (toList signatories)
 
@@ -420,3 +421,9 @@ oneshotAsset = assetClass oneshotCS multiSignTokenName
 
 oneshotValue :: Value
 oneshotValue = assetClassValue oneshotAsset 1
+
+signedWith' :: PaymentPubKeyHash -> ContextBuilder p
+signedWith' ppkh = signedWith name pkh
+  where
+    pkh = unPaymentPubKeyHash ppkh
+    name = Text.pack (show pkh)
