@@ -68,11 +68,11 @@ library
     , lens               ^>=4.19.2
     , openapi3           <3.2
     , playground-common
+    , plutus-collection  >=1.0 && <2.2
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
     , plutus-ledger-constraints
-    , plutus-list        >=1.0 && <2.1
     , plutus-numeric
     , plutus-pab
     , plutus-tx
@@ -102,13 +102,14 @@ test-suite majority-multisign-test
     , generic-arbitrary   ==0.2.*
     , lens
     , majority-multisign
+    , plutus-collection
+    , plutus-context-builder ^>= 1.0
     , plutus-contract
     , plutus-golden       >=1.0 && <3.1
     , plutus-laws         >=1.0 && <3.1
     , plutus-ledger
     , plutus-ledger-api
     , plutus-ledger-constraints
-    , plutus-list
     , plutus-numeric
     , plutus-tx
     , plutus-tx-plugin
@@ -117,7 +118,7 @@ test-suite majority-multisign-test
     , quickcheck-plutus-instances
     , semigroupoids       ^>=5.3
     , tasty               ^>=1.4.1
-    , tasty-plutus        >=5.1 && <7.1
+    , tasty-plutus        ^>=8.0
     , tasty-quickcheck    ^>=0.10.1.2
     , text
 

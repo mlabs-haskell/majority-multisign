@@ -73,8 +73,8 @@
             additional = ps: [
               ps.tasty-plutus
               ps.quickcheck-plutus-instances
+              ps.plutus-collection
               ps.plutus-laws
-              ps.plutus-list
               ps.plutus-golden
 
               ps.base-deriving-via
