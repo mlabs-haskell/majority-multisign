@@ -233,10 +233,10 @@
         "homepage": "",
         "owner": "Plutonomicon",
         "repo": "plutarch",
-        "rev": "55bb381a6cd5cd40a0c77f1005e93c6f60e865fe",
-        "sha256": "0bq69qb9k2lnwl3sqayjg0k0g2jghmigj3kgq4r20ayb88l4iall",
+        "rev": "f5327118b2bb52e0ef34fc514615a76404b5bb5c",
+        "sha256": "0p90l6ljzmzlfbpmsni7rbc6c9qx0z6p54bxxvsgwk98scbm9vj7",
         "type": "tarball",
-        "url": "https://github.com/Plutonomicon/plutarch/archive/55bb381a6cd5cd40a0c77f1005e93c6f60e865fe.tar.gz",
+        "url": "https://github.com/Plutonomicon/plutarch/archive/f5327118b2bb52e0ef34fc514615a76404b5bb5c.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus": {

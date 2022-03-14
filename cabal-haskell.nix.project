@@ -41,7 +41,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/Plutonomicon/plutarch.git
-  tag: 55bb381a6cd5cd40a0c77f1005e93c6f60e865fe
+  tag: f5327118b2bb52e0ef34fc514615a76404b5bb5c
 
 constraints:
   docopt >= 0.7.0.6,
