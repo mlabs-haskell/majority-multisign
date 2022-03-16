@@ -21,7 +21,7 @@ import Ledger (
  )
 import Ledger.Crypto (PubKey (PubKey))
 import MajorityMultiSign.Contracts (multiSignTokenName)
-import MajorityMultiSign.OnChain (mkValidator, validator)
+import MajorityMultiSign.OnChain (mkValidator, validator, isUnderSizeLimitCompiled)
 import MajorityMultiSign.Schema qualified as Schema
 import Plutus.V1.Ledger.Api (fromBytes)
 import Plutus.V1.Ledger.Scripts (Validator (getValidator))
@@ -58,7 +58,7 @@ import Test.Tasty.Plutus.TestData (
     spendValue
   ),
  )
-import Test.Tasty.Plutus.TestScript (mkTestValidator, toTestValidator)
+import Test.Tasty.Plutus.TestScript (toTestValidator, mkTestValidatorUnsafe)
 import Test.Tasty.Plutus.WithScript (WithScript, withTestScript)
 import Prelude hiding (pred)
 
@@ -199,8 +199,9 @@ tests =
     test desc =
       withTestScript
         desc
-        ( mkTestValidator
+        ( mkTestValidatorUnsafe @Schema.MajorityMultiSignDatum @Schema.MajorityMultiSignRedeemer
             ( $$(PlutusTx.compile [||mkValidator||])
+                `PlutusTx.applyCode` isUnderSizeLimitCompiled
                 `PlutusTx.applyCode` PlutusTx.liftCode initialParams
             )
             $$(PlutusTx.compile [||toTestValidator||])

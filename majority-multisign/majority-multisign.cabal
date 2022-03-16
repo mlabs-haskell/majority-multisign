@@ -82,6 +82,8 @@ library
     , recursion-schemes  >=5 && <6
     , row-types          ^>=1.0.1.0
     , text
+    , plutarch
+    , generics-sop
 
   hs-source-dirs:  src
 

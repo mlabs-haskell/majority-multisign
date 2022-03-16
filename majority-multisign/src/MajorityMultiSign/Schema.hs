@@ -18,8 +18,11 @@ module MajorityMultiSign.Schema (
   MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
+  PMajorityMultiSignDatum (..),
+  PMajorityMultiSignRedeemer (..),
   getMinSigners,
   maximumSigners,
+  pmaximumSigners,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, (.:), (.=))
@@ -30,6 +33,7 @@ import Data.OpenApi.Schema qualified as OpenApi
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
+import Generics.SOP qualified as SOP
 import Ledger (PaymentPubKey, PaymentPubKeyHash)
 import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Endpoint, type (.\/))
@@ -46,6 +50,11 @@ import Schema (
   ToSchema (toSchema),
  )
 import Prelude (Eq, Show, (<$>), (<*>))
+
+import Plutarch (ClosedTerm)
+import Plutarch.Prelude
+import Plutarch.Api.V1
+import Plutarch.DataRepr
 
 {-# INLINEABLE signReq #-}
 
@@ -104,8 +113,11 @@ instance ToArgument MajorityMultiSignIdentifier where
 newtype MajorityMultiSignValidatorParams = MajorityMultiSignValidatorParams
   { asset :: AssetClass
   }
+  deriving stock (Generic)
 
 deriving anyclass instance ToArgument AssetClass
+
+PlutusTx.makeIsDataIndexed ''MajorityMultiSignValidatorParams [('MajorityMultiSignValidatorParams, 0)]
 
 instance ToArgument CurrencySymbol where
   toArgument (CurrencySymbol builtinBS) =
@@ -138,7 +150,7 @@ PlutusTx.makeIsDataIndexed
 
 newtype PMajorityMultiSignDatum (s :: S) =
   PMajorityMultiSignDatum (Term s (PDataRecord
-    '["_0" ':= PBuiltinList PPubKeyHash]
+    '["_0" ':= PBuiltinList (PAsData PPubKeyHash)]
   ))
   deriving
     ( PMatch
@@ -146,8 +158,8 @@ newtype PMajorityMultiSignDatum (s :: S) =
     , PDataFields
     )
     via PIsDataReprInstances PMajorityMultiSignDatum
-  deriving stock (GHC.Generic)
-  deriving anyclass (Generic, PIsDataRepr)
+  deriving stock (Generic)
+  deriving anyclass (SOP.Generic, PIsDataRepr)
 
 -- | Redeemer of the validator, allowing for simple use (not modifying datum), or key updating
 data MajorityMultiSignRedeemer
@@ -157,15 +169,14 @@ data MajorityMultiSignRedeemer
 
 data PMajorityMultiSignRedeemer (s :: S)
   = PUseSignaturesAct (Term s (PDataRecord '[]))
-  | PUpdateKeysAct (Term s (PDataRecord '["_0" ':= PList PPubKeyHash]))
+  | PUpdateKeysAct (Term s (PDataRecord '["_0" ':= PBuiltinList (PAsData PPubKeyHash)]))
   deriving
     ( PMatch
     , PIsData
-    , PDataFields
     )
-    via PIsDataReprInstances PMajorityMultiSignDatum
-  deriving stock (GHC.Generic)
-  deriving anyclass (Generic, PIsDataRepr)
+    via PIsDataReprInstances PMajorityMultiSignRedeemer
+  deriving stock (Generic)
+  deriving anyclass (SOP.Generic, PIsDataRepr)
 
 PlutusTx.makeIsDataIndexed
   ''MajorityMultiSignRedeemer

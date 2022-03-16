@@ -1,6 +1,8 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-specialise #-}
+{-# OPTIONS_GHC -w #-}
 
 module MajorityMultiSign.OnChain (
   checkMultisigned,
@@ -10,6 +12,7 @@ module MajorityMultiSign.OnChain (
   validatorFromIdentifier,
   validatorHash,
   validatorHashFromIdentifier,
+  isUnderSizeLimitCompiled,
 ) where
 
 import Data.List.Extra (firstJust)
@@ -23,40 +26,46 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignIdentifier (MajorityMultiSignIdentifier, asset),
   MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams, asset),
+  PMajorityMultiSignRedeemer (..),
+  PMajorityMultiSignDatum (..),
   getMinSigners,
   maximumSigners,
+  pmaximumSigners,
  )
 import Plutus.V1.Ledger.Api (TxOut (txOutDatumHash, txOutValue))
 import Plutus.V1.Ledger.Contexts (TxInInfo (txInInfoResolved), TxInfo (txInfoInputs), findDatumHash)
 import Plutus.V1.Ledger.Value (assetClassValueOf)
+import PlutusTx (BuiltinData, CompiledCode, unsafeFromBuiltinData)
 import PlutusTx qualified
+import PlutusTx.Builtins.Internal (BuiltinBool)
 import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (Natural)
 import PlutusTx.Prelude
 
-
+import Plutarch (ClosedTerm)
+import Plutarch.Prelude
 import Plutarch.FFI (unsafeForeignExport)
+import Plutarch.Api.V1 hiding (mkValidator, validatorHash)
 
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
-  (Data -> Data -> BuiltinBool) ->
+  (BuiltinData -> BuiltinData -> BuiltinBool) ->
   MajorityMultiSignValidatorParams ->
-  Data ->
-  Data ->
-  Data ->
-  ()
+  BuiltinData ->
+  BuiltinData ->
+  BuiltinData ->
+  Bool
 mkValidator sizeF params datD redD ctxD =
   let dat :: MajorityMultiSignDatum
-      dat = unsafeFromData datD
+      dat = unsafeFromBuiltinData datD
       red :: MajorityMultiSignRedeemer
-      red = unsafeFromData redD
+      red = unsafeFromBuiltinData redD
       ctx :: ScriptContext
-      ctx = unsafeFromData ctxD 
+      ctx = unsafeFromBuiltinData ctxD 
   in 
-    check $
-      hasCorrectToken params ctx (getExpectedDatum red dat)
-       && isSufficientlySigned red dat ctx
-       && fromBuiltin (sizeF redD datD)
+    hasCorrectToken params ctx (getExpectedDatum red dat)
+      && isSufficientlySigned red dat ctx
+      && fromBuiltin (sizeF redD datD)
 
 {-# INLINEABLE removeSigners #-}
 removeSigners :: [PaymentPubKeyHash] -> [PaymentPubKeyHash] -> [PaymentPubKeyHash]
@@ -140,38 +149,31 @@ isUnderSizeLimit (UpdateKeysAct keys) MajorityMultiSignDatum {signers} =
     && traceIfFalse "Redeemer too large" (Natural.length keys <= maximumSigners)
 
 -- isUnderSizeLimit' :: MajorityMultiSignRedeemer -> MajorityMultiSignDatum -> Bool
-isUnderSizeLimitCompiled :: CompiledCode (Data -> Data -> BuiltinBool)
+isUnderSizeLimitCompiled :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinBool)
 isUnderSizeLimitCompiled = unsafeForeignExport isUnderSizeLimit'
 
-isUnderSizeLimit' :: ClosedTerm (PAsData PMajorityMultiSignRedeemer :--> PAsData PMajorityMultiSignDatum :--> PBool)
+isUnderSizeLimit' :: forall (s :: S). Term s (PAsData PMajorityMultiSignRedeemer :--> PAsData PMajorityMultiSignDatum :--> PBool)
 isUnderSizeLimit' = plam $ \red datum -> unTermCont $ do
   PMajorityMultiSignDatum signersRec <- TermCont $ pmatch (pfromData datum)
-  signkeys <- TermCont $ plet (pfield @"_0" signersRec)
+  (pfromData -> signkeys) <- TermCont $ plet (pfield @"_0" # signersRec)
   datumValid <- TermCont $ plet $ ptraceIfFalse "Datum too large" $ plength # signkeys #<= pmaximumSigners
   
-  pure $ pmatch (pfromData red) $ \case
+  return $ pmatch (pfromData red) $ \case
     PUseSignaturesAct _ -> datumValid
-    PUpdateKeysAct keysRec -> unTermCont $
+    PUpdateKeysAct keysRec ->
       flip (pif datumValid) datumValid $ unTermCont $ do
-        keys <- TermCont $ plet (pfield @"_0" keysRec)
-        pure $ ptraceIfFalse "Redeemer too large" $ plength # keys #<= pmaximumSigners
-
-
-inst :: MajorityMultiSignValidatorParams -> TypedScripts.TypedValidator MajorityMultiSign
-inst params =
-  TypedScripts.mkTypedValidator @MajorityMultiSign
-    ($$(PlutusTx.compile [||mkValidator||])
-      `PlutusTx.applyCode` isUnderSizeLimitCompiled
-      `PlutusTx.applyCode` PlutusTx.liftCode params)
-    $$(PlutusTx.compile [||wrap||])
-  where
-    wrap = TypedScripts.wrapValidator @MajorityMultiSignDatum @MajorityMultiSignRedeemer
+        (pfromData -> keys) <- TermCont $ plet (pfield @"_0" # keysRec)
+        return $ ptraceIfFalse "Redeemer too large" $ plength # keys #<= pmaximumSigners
 
 validator :: MajorityMultiSignValidatorParams -> Scripts.Validator
-validator = TypedScripts.validatorScript . inst
+validator params =
+  Scripts.mkValidatorScript $
+    ($$(PlutusTx.compile [||\f params dtm rdm -> check . mkValidator f params dtm rdm||])
+      `PlutusTx.applyCode` isUnderSizeLimitCompiled
+      `PlutusTx.applyCode` PlutusTx.liftCode params)
 
 validatorHash :: MajorityMultiSignValidatorParams -> Scripts.ValidatorHash
-validatorHash = TypedScripts.validatorHash . inst
+validatorHash = Scripts.validatorHash . validator
 
 validatorAddress :: MajorityMultiSignValidatorParams -> Address
 validatorAddress = Ledger.scriptAddress . validator
