@@ -48,7 +48,7 @@ import MajorityMultiSign.Schema (
  )
 import Plutus.Contract (
   Contract,
-  ContractError (OtherError),
+  ContractError (OtherContractError),
   awaitTxConfirmed,
   mkTxConstraints,
   submitTxConstraintsWith,
@@ -155,9 +155,9 @@ submitSignedTxConstraintsWith mms pubKeys lookups tx = do
       lookups' = lookups <> foldMap Constraints.paymentPubKey pubKeys
 
   unless (sufficientPubKeys pubKeys [] keyOptions) $
-    throwError $ OtherError "Insufficient pub keys given"
+    throwError $ OtherContractError "Insufficient pub keys given"
   unless (Natural.length pubKeys <= maximumSigners) $
-    throwError $ OtherError "Too many signers given"
+    throwError $ OtherContractError "Too many signers given"
 
   utx <- prepareTxForSigning @a mms lookups' tx
   submitUnbalancedTx utx
@@ -226,9 +226,9 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
           <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (addMinLovelace $ assetClassValue mmsIdentifier.asset 1)
 
   unless (sufficientPubKeys pubKeys newKeysDiff keyOptions) $
-    throwError $ OtherError "Insufficient pub keys given"
+    throwError $ OtherContractError "Insufficient pub keys given"
   unless (Natural.length newKeys <= maximumSigners) $
-    throwError $ OtherError "Too many new signers given"
+    throwError $ OtherContractError "Too many new signers given"
 
   ledgerTx <- submitTxConstraintsWith @Any lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
@@ -254,7 +254,7 @@ findUTxO mms = do
         datum <- getChainIndexTxOutDatum txOut
         typedDatum <- fromBuiltinData @MajorityMultiSignDatum $ getDatum datum
         return ((txOutRef, txOut), datum, typedDatum.signers)
-    _ -> throwError $ OtherError "Couldn't find UTxO"
+    _ -> throwError $ OtherContractError "Couldn't find UTxO"
 
 -- | fromJust that gives a Contract error
 maybeToError ::
@@ -262,7 +262,7 @@ maybeToError ::
   Text ->
   Maybe a ->
   Contract w s ContractError a
-maybeToError err = maybe (throwError $ OtherError err) return
+maybeToError err = maybe (throwError $ OtherContractError err) return
 
 -- | Extracts the datum from a ChainIndexTxOut
 getChainIndexTxOutDatum :: ChainIndexTxOut -> Maybe Datum

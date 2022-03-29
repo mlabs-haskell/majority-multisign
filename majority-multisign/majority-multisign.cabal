@@ -75,6 +75,7 @@ library
     , plutus-ledger-constraints
     , plutus-numeric
     , plutus-pab
+    , plutus-pretty
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
@@ -103,7 +104,7 @@ test-suite majority-multisign-test
     , lens
     , majority-multisign
     , plutus-collection
-    , plutus-context-builder ^>= 1.0
+    , plutus-context-builder ^>= 2.0
     , plutus-contract
     , plutus-golden       >=1.0 && <3.1
     , plutus-laws         >=1.0 && <3.1
@@ -118,7 +119,7 @@ test-suite majority-multisign-test
     , quickcheck-plutus-instances
     , semigroupoids       ^>=5.3
     , tasty               ^>=1.4.1
-    , tasty-plutus        ^>=8.0
+    , tasty-plutus        ^>=9.1
     , tasty-quickcheck    ^>=0.10.1.2
     , text
 

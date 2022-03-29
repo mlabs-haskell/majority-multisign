@@ -34,6 +34,13 @@ import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (Natural)
 import PlutusTx.Prelude
 
+import PlutusTx.Skeleton
+traceSkeletalId ::
+  (Skeletal a) =>
+  a ->
+  a
+traceSkeletalId x = traceSkeletal x x
+
 {-# INLINEABLE mkValidator #-}
 mkValidator ::
   MajorityMultiSignValidatorParams ->
@@ -72,7 +79,7 @@ hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
   traceIfFalse "Couldn't find asset" (isJust assetTxOut)
     && traceIfFalse
       "Incorrect output datum"
-      ((assetTxOut >>= txOutDatumHash) == findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx))
+      ((assetTxOut >>= txOutDatumHash) == (findDatumHash (traceSkeletalId $ Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx)))
   where
     continuing :: [TxOut]
     continuing = Ledger.getContinuingOutputs ctx

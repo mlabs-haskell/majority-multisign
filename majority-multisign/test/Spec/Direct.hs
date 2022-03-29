@@ -12,7 +12,6 @@ import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
 import Data.Semigroup.Foldable.Class (Foldable1 (fold1))
 import Data.String (IsString)
-import Data.Text qualified as Text
 import Data.Word (Word8)
 import Ledger (
   PaymentPubKey (PaymentPubKey),
@@ -33,6 +32,7 @@ import Test.Plutus.ContextBuilder (
   ContextBuilder,
   Purpose (ForSpending),
   ValidatorUTXO (ValidatorUTXO),
+  Naming (Anonymous),
   signedWith,
   validatorOutput,
  )
@@ -220,7 +220,7 @@ arbitraryTransactionFrom ::
     ( Schema.MajorityMultiSignDatum
     , Schema.MajorityMultiSignRedeemer
     , Value
-    , ContextBuilder TestPurpose
+    , ContextBuilder TestPurpose 'Anonymous
     )
 arbitraryTransactionFrom currentSigs newSigs knownSigs = do
   datum <- arbitraryDatumFrom knownSigs
@@ -239,12 +239,12 @@ shrinkTransaction ::
   ( Schema.MajorityMultiSignDatum
   , Schema.MajorityMultiSignRedeemer
   , Value
-  , ContextBuilder TestPurpose
+  , ContextBuilder TestPurpose 'Anonymous
   ) ->
   [ ( Schema.MajorityMultiSignDatum
     , Schema.MajorityMultiSignRedeemer
     , Value
-    , ContextBuilder TestPurpose
+    , ContextBuilder TestPurpose 'Anonymous
     )
   ]
 shrinkTransaction (datum, redeemer, value, context) =
@@ -370,8 +370,8 @@ testProperty desc currentSignatories newSignatories knownSignatories =
     )
   where
     grade ::
-      (Schema.MajorityMultiSignDatum, Schema.MajorityMultiSignRedeemer, Value, ContextBuilder TestPurpose) ->
-      TestItems TestPurpose
+      (Schema.MajorityMultiSignDatum, Schema.MajorityMultiSignRedeemer, Value, ContextBuilder TestPurpose 'Anonymous) ->
+      TestItems TestPurpose 'Anonymous
     grade (datum@Schema.MajorityMultiSignDatum {signers}, redeemer, value, context)
       | length (currentSignatories `intersection` signers)
           < ceiling (length (nub signers) % 2) =
@@ -422,8 +422,5 @@ oneshotAsset = assetClass oneshotCS multiSignTokenName
 oneshotValue :: Value
 oneshotValue = assetClassValue oneshotAsset 1
 
-signedWith' :: PaymentPubKeyHash -> ContextBuilder p
-signedWith' ppkh = signedWith name pkh
-  where
-    pkh = unPaymentPubKeyHash ppkh
-    name = Text.pack (show pkh)
+signedWith' :: forall (p :: Purpose). PaymentPubKeyHash -> ContextBuilder p 'Anonymous
+signedWith' ppkh = signedWith $ unPaymentPubKeyHash ppkh

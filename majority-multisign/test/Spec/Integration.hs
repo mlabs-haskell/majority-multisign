@@ -15,7 +15,7 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignDatum (MajorityMultiSignDatum),
   MajorityMultiSignIdentifier (MajorityMultiSignIdentifier),
  )
-import Plutus.Contract (Contract, ContractError (WalletError), Empty)
+import Plutus.Contract (Contract, ContractError (WalletContractError), Empty)
 import Plutus.Contract.Test qualified as Test
 import Plutus.Trace qualified as Trace
 import Plutus.Trace.Emulator qualified as Emulator
@@ -57,7 +57,7 @@ bypassContract' :: Contract () Empty ContractError ()
 bypassContract' = bypassContract integrationParams
 
 makeExpectedError :: [Text] -> ContractError
-makeExpectedError xs = WalletError (ValidationError (Ledger.ScriptFailure (Scripts.EvaluationError xs "CekEvaluationFailure")))
+makeExpectedError xs = WalletContractError (ValidationError (Ledger.ScriptFailure (Scripts.EvaluationError xs "CekEvaluationFailure")))
 
 expectedBypassError :: ContractError
 expectedBypassError = makeExpectedError ["Missing Multisign Asset", "PT5"]
