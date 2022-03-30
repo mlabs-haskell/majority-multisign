@@ -219,6 +219,7 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
         Constraints.otherScript (validatorFromIdentifier mmsIdentifier)
           <> Constraints.unspentOutputs (uncurry Map.singleton txOutData)
           <> foldMap Constraints.paymentPubKey pubKeys
+          <> Constraints.otherData datum
       tx =
         makeSigningConstraint @Any missingKeyOptions
           <> foldMap Constraints.mustBeSignedBy newKeysDiff
