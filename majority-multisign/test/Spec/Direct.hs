@@ -33,6 +33,7 @@ import Test.Plutus.ContextBuilder (
   Purpose (ForSpending),
   ValidatorUTXO (ValidatorUTXO),
   Naming (Anonymous),
+  addDatum,
   signedWith,
   validatorOutput,
  )
@@ -232,6 +233,7 @@ arbitraryTransactionFrom currentSigs newSigs knownSigs = do
         Just Schema.UseSignaturesAct -> validatorOutput "payout" (ValidatorUTXO datum value)
         Just (Schema.UpdateKeysAct keys) ->
           validatorOutput "MMS" (ValidatorUTXO (Schema.MajorityMultiSignDatum keys) value)
+             <> addDatum (Schema.MajorityMultiSignDatum keys)
         Nothing -> error "Unexpected redeemer type"
   pure (datum, redeemer, value, context)
 
@@ -328,6 +330,7 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
         ( validatorOutput "MMS" (ValidatorUTXO newDatum oneshotValue)
             :| (signedWith' <$> currentSignatories)
         )
+        <> addDatum newDatum
     )
   where
     oldDatum = Schema.MajorityMultiSignDatum knownSignatories
