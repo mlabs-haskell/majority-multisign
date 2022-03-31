@@ -21,8 +21,8 @@ source-repository-package
 -- New testing functionality
 source-repository-package
   type: git
-  location: https://github.com/mlabs-haskell/plutus-extra-1.git
-  tag: 024b877c9ea93071c405e722c6364dde871205e3
+  location: https://github.com/Liqwid-Labs/plutus-extra.git
+  tag: b456bb86ee809eccf6b79ea99d95b318d9a70c95
   subdir:
     plutus-collection
     plutus-context-builder

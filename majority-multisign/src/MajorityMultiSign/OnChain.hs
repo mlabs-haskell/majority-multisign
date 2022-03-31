@@ -72,7 +72,7 @@ hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
   traceIfFalse "Couldn't find asset" (isJust assetTxOut)
     && traceIfFalse
       "Incorrect output datum"
-      ((assetTxOut >>= txOutDatumHash) == (findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx)))
+      ((assetTxOut >>= txOutDatumHash) == findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx))
   where
     continuing :: [TxOut]
     continuing = Ledger.getContinuingOutputs ctx

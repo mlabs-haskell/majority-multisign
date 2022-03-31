@@ -264,15 +264,15 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus-extra": {
-        "branch": "mario/MalformedScript",
+        "branch": "master",
         "description": "Helper libraries for Plutus.",
         "homepage": "",
-        "owner": "mlabs-haskell",
-        "repo": "plutus-extra-1",
-        "rev": "024b877c9ea93071c405e722c6364dde871205e3",
-        "sha256": "177hn468npkqk65xn26i0l3gicqwsfq918bzy9jjmfp0yqxf5bd4",
+        "owner": "Liqwid-Labs",
+        "repo": "plutus-extra",
+        "rev": "b456bb86ee809eccf6b79ea99d95b318d9a70c95",
+        "sha256": "03ybh3md7cwqk841z2pyrlwblak9w87pw90nw3n41khyqk3vj8qs",
         "type": "tarball",
-        "url": "https://github.com/mlabs-haskell/plutus-extra-1/archive/024b877c9ea93071c405e722c6364dde871205e3.tar.gz",
+        "url": "https://github.com/Liqwid-Labs/plutus-extra/archive/b456bb86ee809eccf6b79ea99d95b318d9a70c95.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "purescript-bridge": {
