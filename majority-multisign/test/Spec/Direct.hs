@@ -12,7 +12,6 @@ import Data.Ratio ((%))
 import Data.Semigroup (sconcat)
 import Data.Semigroup.Foldable.Class (Foldable1 (fold1))
 import Data.String (IsString)
-import Data.Text qualified as Text
 import Data.Word (Word8)
 import Ledger (
   PaymentPubKey (PaymentPubKey),
@@ -31,8 +30,10 @@ import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (nat)
 import Test.Plutus.ContextBuilder (
   ContextBuilder,
+  Naming (Anonymous),
   Purpose (ForSpending),
   ValidatorUTXO (ValidatorUTXO),
+  addDatum,
   signedWith,
   validatorOutput,
  )
@@ -220,7 +221,7 @@ arbitraryTransactionFrom ::
     ( Schema.MajorityMultiSignDatum
     , Schema.MajorityMultiSignRedeemer
     , Value
-    , ContextBuilder TestPurpose
+    , ContextBuilder TestPurpose 'Anonymous
     )
 arbitraryTransactionFrom currentSigs newSigs knownSigs = do
   datum <- arbitraryDatumFrom knownSigs
@@ -232,6 +233,7 @@ arbitraryTransactionFrom currentSigs newSigs knownSigs = do
         Just Schema.UseSignaturesAct -> validatorOutput "payout" (ValidatorUTXO datum value)
         Just (Schema.UpdateKeysAct keys) ->
           validatorOutput "MMS" (ValidatorUTXO (Schema.MajorityMultiSignDatum keys) value)
+            <> addDatum (Schema.MajorityMultiSignDatum keys)
         Nothing -> error "Unexpected redeemer type"
   pure (datum, redeemer, value, context)
 
@@ -239,12 +241,12 @@ shrinkTransaction ::
   ( Schema.MajorityMultiSignDatum
   , Schema.MajorityMultiSignRedeemer
   , Value
-  , ContextBuilder TestPurpose
+  , ContextBuilder TestPurpose 'Anonymous
   ) ->
   [ ( Schema.MajorityMultiSignDatum
     , Schema.MajorityMultiSignRedeemer
     , Value
-    , ContextBuilder TestPurpose
+    , ContextBuilder TestPurpose 'Anonymous
     )
   ]
 shrinkTransaction (datum, redeemer, value, context) =
@@ -328,6 +330,7 @@ testUpdate description positive currentSignatories newSignatories knownSignatori
         ( validatorOutput "MMS" (ValidatorUTXO newDatum oneshotValue)
             :| (signedWith' <$> currentSignatories)
         )
+        <> addDatum newDatum
     )
   where
     oldDatum = Schema.MajorityMultiSignDatum knownSignatories
@@ -370,8 +373,8 @@ testProperty desc currentSignatories newSignatories knownSignatories =
     )
   where
     grade ::
-      (Schema.MajorityMultiSignDatum, Schema.MajorityMultiSignRedeemer, Value, ContextBuilder TestPurpose) ->
-      TestItems TestPurpose
+      (Schema.MajorityMultiSignDatum, Schema.MajorityMultiSignRedeemer, Value, ContextBuilder TestPurpose 'Anonymous) ->
+      TestItems TestPurpose 'Anonymous
     grade (datum@Schema.MajorityMultiSignDatum {signers}, redeemer, value, context)
       | length (currentSignatories `intersection` signers)
           < ceiling (length (nub signers) % 2) =
@@ -422,8 +425,5 @@ oneshotAsset = assetClass oneshotCS multiSignTokenName
 oneshotValue :: Value
 oneshotValue = assetClassValue oneshotAsset 1
 
-signedWith' :: PaymentPubKeyHash -> ContextBuilder p
-signedWith' ppkh = signedWith name pkh
-  where
-    pkh = unPaymentPubKeyHash ppkh
-    name = Text.pack (show pkh)
+signedWith' :: forall (p :: Purpose). PaymentPubKeyHash -> ContextBuilder p 'Anonymous
+signedWith' ppkh = signedWith $ unPaymentPubKeyHash ppkh

@@ -16,13 +16,13 @@ source-repository-package
     plutus-use-cases
     quickcheck-dynamic
     web-ghc
-  tag: 686b559d34c7bd934b327a1644f31fe42d643492
+  tag: 7f543e21d4945a2024e46c572303b9c1684a5832
 
 -- New testing functionality
 source-repository-package
   type: git
-  location: https://github.com/mlabs-haskell/plutus-extra-1.git
-  tag: a5a8e323062c2a55ef8897d4bd0b1932108b8052
+  location: https://github.com/Liqwid-Labs/plutus-extra.git
+  tag: b456bb86ee809eccf6b79ea99d95b318d9a70c95
   subdir:
     plutus-collection
     plutus-context-builder
@@ -64,20 +64,11 @@ source-repository-package
 -- re-update this section from the template when you do an upgrade.
 
 ---------- *replace here* ----------------------------------------------------------------------
--- The only sensible test display option
+-- The only sensible test display option.
 test-show-details: streaming
 
--- Copied from plutus-core
-constraints:
-  -- big breaking change here, inline-r doens't have an upper bound
-  singletons < 3.0
-  -- bizarre issue: in earlier versions they define their own 'GEq', in newer
-  -- ones they reuse the one from 'some', but there isn't e.g. a proper version
-  -- constraint from dependent-sum-template (which is the library we actually use).
-  , dependent-sum > 0.6.2.0
-  -- Newer Hashable have instances for Set, which breaks beam-migrate
-  -- which declares its own instances of Hashable Set
-  , hashable < 1.3.4.0
+allow-newer:
+  size-based:template-haskell
 
 -- These packages appear in our dependency tree and are very slow to build.
 -- Empirically, turning off optimization shaves off ~50% build time.
@@ -102,6 +93,16 @@ package cardano-wallet-launcher
 package cardano-wallet-core-integration
   optimization: False
 
+-- Direct dependency.
+-- Are you thinking of updating this tag to some other commit?
+-- Please ensure that the commit you are about to use is the latest one from
+-- the *develop* branch of this repo:
+--   * <https://github.com/input-output-hk/iohk-monitoring-framework/commits/develop>
+-- (not master!)
+--
+-- In particular we rely on the code from this PR:
+--  * <https://github.com/input-output-hk/iohk-monitoring-framework/pull/622>
+-- being merged.
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/iohk-monitoring-framework
@@ -116,9 +117,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus
-  --tag: 3f93f74bc565ec4ed0b1e1e9dbea1b7bb12f6bac
-  tag: d4f933d25ecc35a9c5bb057f5cf462112129cfdb
-  --tag: cc72a56eafb02333c96f662581b57504f8f8992f
+  tag: cc72a56eafb02333c96f662581b57504f8f8992f
   subdir:
     plutus-core
     plutus-ledger-api
