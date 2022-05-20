@@ -82,12 +82,12 @@ hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
 
     result :: Maybe ()
     result = do
-      assetTxOut <- traceIfNothing "Couldn't find asset" $ firstJust checkAsset continuing
-      let datumHash = traceIfNothing "Continuing output does not have datum" $ txOutDatumHash assetTxOut
-          expectedDatumHash =
+      !assetTxOut <- traceIfNothing "Couldn't find asset" $ firstJust checkAsset continuing
+      let !datumHash = traceIfNothing "Continuing output does not have datum" $ txOutDatumHash assetTxOut
+          !expectedDatumHash =
             traceIfNothing "Datum map does not have expectedDatum" $
               findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx)
-      _ <- traceIfFalse "Incorrect output datum" <$> liftA2 (==) datumHash expectedDatumHash
+      !_ <- traceIfFalse "Incorrect output datum" <$> liftA2 (==) datumHash expectedDatumHash
       pure ()
 
 -- | External function called by other contracts to ensure multisigs present
