@@ -69,10 +69,9 @@ hasNewSignatures (UpdateKeysAct keys) MajorityMultiSignDatum {signers} ctx =
 {-# INLINEABLE hasCorrectToken #-}
 hasCorrectToken :: MajorityMultiSignValidatorParams -> ScriptContext -> MajorityMultiSignDatum -> Bool
 hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
-  traceIfFalse "Couldn't find asset" (isJust assetTxOut)
-    && traceIfFalse
-      "Incorrect output datum"
-      ((assetTxOut >>= txOutDatumHash) == findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx))
+    case result of
+      Left errMsg -> trace errMsg False
+      Right () -> True
   where
     continuing :: [TxOut]
     continuing = Ledger.getContinuingOutputs ctx
@@ -80,8 +79,17 @@ hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
     checkAsset :: TxOut -> Maybe TxOut
     checkAsset txOut = if assetClassValueOf (txOutValue txOut) asset > 0 then Just txOut else Nothing
 
-    assetTxOut :: Maybe TxOut
-    assetTxOut = firstJust checkAsset continuing
+    justOrErr :: BuiltinString -> Maybe a -> Either BuiltinString a
+    justOrErr errMsg = maybe (Left errMsg) Right
+
+    result :: Either BuiltinString ()
+    result = do
+      assetTxOut <- justOrErr "Couldn't find asset" $ firstJust checkAsset continuing
+      datumHash <- justOrErr "Continuing output does not have datum" $ txOutDatumHash assetTxOut
+      expectedDatumHash <- justOrErr "Datum map does not have expectedDatum" $
+          findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx)
+      unless (datumHash == expectedDatumHash) $
+          Left "Incorrect output datum"
 
 -- | External function called by other contracts to ensure multisigs present
 {-# INLINEABLE checkMultisigned #-}
