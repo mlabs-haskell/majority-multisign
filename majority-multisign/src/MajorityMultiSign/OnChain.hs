@@ -69,9 +69,7 @@ hasNewSignatures (UpdateKeysAct keys) MajorityMultiSignDatum {signers} ctx =
 {-# INLINEABLE hasCorrectToken #-}
 hasCorrectToken :: MajorityMultiSignValidatorParams -> ScriptContext -> MajorityMultiSignDatum -> Bool
 hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
-  case result of
-    Left errMsg -> trace errMsg False
-    Right () -> True
+  isJust result
   where
     continuing :: [TxOut]
     continuing = Ledger.getContinuingOutputs ctx
@@ -79,19 +77,18 @@ hasCorrectToken MajorityMultiSignValidatorParams {asset} ctx expectedDatum =
     checkAsset :: TxOut -> Maybe TxOut
     checkAsset txOut = if assetClassValueOf (txOutValue txOut) asset > 0 then Just txOut else Nothing
 
-    justOrErr :: BuiltinString -> Maybe a -> Either BuiltinString a
-    justOrErr errMsg = maybe (Left errMsg) Right
+    traceIfNothing :: BuiltinString -> Maybe a -> Maybe a
+    traceIfNothing errMsg = maybe (trace errMsg Nothing) Just
 
-    result :: Either BuiltinString ()
+    result :: Maybe ()
     result = do
-      assetTxOut <- justOrErr "Couldn't find asset" $ firstJust checkAsset continuing
-      let datumHash = justOrErr "Continuing output does not have datum" $ txOutDatumHash assetTxOut
+      assetTxOut <- traceIfNothing "Couldn't find asset" $ firstJust checkAsset continuing
+      let datumHash = traceIfNothing "Continuing output does not have datum" $ txOutDatumHash assetTxOut
           expectedDatumHash =
-            justOrErr "Datum map does not have expectedDatum" $
+            traceIfNothing "Datum map does not have expectedDatum" $
               findDatumHash (Datum $ PlutusTx.toBuiltinData expectedDatum) (scriptContextTxInfo ctx)
-      datumIsValid <- liftA2 (==) datumHash expectedDatumHash
-      unless datumIsValid $
-        Left "Incorrect output datum"
+      _ <- traceIfFalse "Incorrect output datum" <$> liftA2 (==) datumHash expectedDatumHash
+      pure ()
 
 -- | External function called by other contracts to ensure multisigs present
 {-# INLINEABLE checkMultisigned #-}
