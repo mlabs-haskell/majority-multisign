@@ -264,15 +264,15 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "plutus-extra": {
-        "branch": "75e47e79338793ff0abf7ec296348f6351fa16be",
+        "branch": "54418f7539dacd299b5219ded18a78ebef357112",
         "description": "Helper libraries for Plutus.",
         "homepage": "",
         "owner": "gege251",
         "repo": "plutus-extra",
-        "rev": "75e47e79338793ff0abf7ec296348f6351fa16be",
-        "sha256": "0v4sgk9k2ziz7c5hshdmsprhyhniryhx9m0fb79r6pzg2f3gywi4",
+        "rev": "54418f7539dacd299b5219ded18a78ebef357112",
+        "sha256": "0l1an7z4ri77myqg18i69ac63vqij4ybi4ryzxzz2s3ff9ff5bvx",
         "type": "tarball",
-        "url": "https://github.com/gege251/plutus-extra/archive/75e47e79338793ff0abf7ec296348f6351fa16be.tar.gz",
+        "url": "https://github.com/gege251/plutus-extra/archive/54418f7539dacd299b5219ded18a78ebef357112.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "purescript-bridge": {
