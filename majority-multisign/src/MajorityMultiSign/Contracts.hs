@@ -17,7 +17,6 @@ import Data.Bifunctor (bimap)
 import Data.Kind (Type)
 import Data.List ((\\))
 import Data.Map qualified as Map
-import Data.Monoid (Last (Last))
 import Data.Row (Row)
 import Data.Text (Text)
 import Data.Void (Void)
@@ -80,14 +79,15 @@ unwrapCurErr :: CurrencyError -> ContractError
 unwrapCurErr (CurContractError c) = c
 
 {- | Mints the oneshot for a validator, sends it to the precalculated validator address with the correct datum.
-  Writes the asset to observable state
+  Returns the asset, and optional writes it to observable state
 -}
 initialize ::
-  forall (s :: Row Type).
+  forall (w :: Type) (s :: Row Type).
   PaymentPubKeyHash ->
+  Maybe (AssetClass -> w) ->
   MajorityMultiSignDatum ->
-  Contract (Last AssetClass) s ContractError AssetClass
-initialize pkh dat = do
+  Contract w s ContractError AssetClass
+initialize pkh toObsState dat = do
   oneshotCS <- mapError unwrapCurErr $ currencySymbol <$> mintContract pkh [(multiSignTokenName, 1)]
   let oneshotAsset :: AssetClass
       oneshotAsset = assetClass oneshotCS multiSignTokenName
@@ -99,7 +99,9 @@ initialize pkh dat = do
           (validatorHash $ validator params)
           (Scripts.Datum $ toBuiltinData dat)
           (assetClassValue oneshotAsset 1)
-  tell $ Last $ Just oneshotAsset
+  case toObsState of
+    Just convert -> tell $ convert $ oneshotAsset
+    Nothing -> pure ()
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
 

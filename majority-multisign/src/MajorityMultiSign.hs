@@ -1,7 +1,7 @@
 module MajorityMultiSign (endpoints) where
 
 import Control.Monad (forever, void)
-import Data.Monoid (Last)
+import Data.Monoid (Last (Last))
 import Ledger (PaymentPubKeyHash)
 import MajorityMultiSign.Contracts (initialize, setSignatures)
 import MajorityMultiSign.Schema (MajorityMultiSignSchema)
@@ -16,6 +16,9 @@ endpoints ::
 endpoints ownPubKeyHash =
   forever $
     selectList
-      [ endpoint @"Initialize" (void . initialize ownPubKeyHash)
+      [ endpoint @"Initialize" (void . initialize ownPubKeyHash toObsState)
       , endpoint @"SetSignatures" setSignatures
       ]
+  where
+    toObsState :: Maybe (AssetClass -> Last AssetClass)
+    toObsState = Just $ Last . Just
