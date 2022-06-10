@@ -5,6 +5,7 @@ module MajorityMultiSign.Contracts (
   addMinLovelace,
   combinations,
   initialize,
+  findUTxO,
   multiSignTokenName,
   prepareTxForSigning,
   setSignatures,
@@ -40,7 +41,6 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignDatum (MajorityMultiSignDatum),
   MajorityMultiSignIdentifier,
   MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
-  MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams),
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
@@ -92,7 +92,7 @@ initialize ::
   forall (s :: Row Type).
   PaymentPubKeyHash ->
   MajorityMultiSignDatum ->
-  Contract (Last AssetClass) s ContractError ()
+  Contract (Last AssetClass) s ContractError AssetClass
 initialize pkh dat = do
   oneshotCS <- mapError unwrapCurErr $ currencySymbol <$> mintContract pkh [(multiSignTokenName, 1)]
   let oneshotAsset :: AssetClass
@@ -108,6 +108,8 @@ initialize pkh dat = do
   tell $ Last $ Just oneshotAsset
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
+  
+  pure oneshotAsset
 
 {- | Gets all possible [combinations](https://byjus.com/maths/permutation-and-combination/)
  of keys of exactly the given length.
