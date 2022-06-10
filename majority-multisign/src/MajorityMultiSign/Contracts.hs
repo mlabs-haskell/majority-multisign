@@ -89,9 +89,10 @@ unwrapCurErr (CurContractError c) = c
   Writes the asset to observable state
 -}
 initialize ::
+  forall (s :: Row Type).
   PaymentPubKeyHash ->
   MajorityMultiSignDatum ->
-  Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
+  Contract (Last AssetClass) s ContractError ()
 initialize pkh dat = do
   oneshotCS <- mapError unwrapCurErr $ currencySymbol <$> mintContract pkh [(multiSignTokenName, 1)]
   let oneshotAsset :: AssetClass
@@ -204,9 +205,9 @@ sufficientPubKeys pubKeys req opts = subset req pkhs && any (`subset` pkhs) opts
 
 -- | Updates all keys in the multisign given authority
 setSignatures ::
-  forall (w :: Type).
+  forall (w :: Type) (s :: Row Type).
   SetSignaturesParams ->
-  Contract w MajorityMultiSignSchema ContractError ()
+  Contract w s ContractError ()
 setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
   (txOutData, _, signerList) <- findUTxO mmsIdentifier
 
