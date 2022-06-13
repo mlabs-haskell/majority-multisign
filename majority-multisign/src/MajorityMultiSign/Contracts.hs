@@ -2,9 +2,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module MajorityMultiSign.Contracts (
-  addMinLovelace,
   combinations,
   initialize,
+  findUTxO,
   multiSignTokenName,
   prepareTxForSigning,
   setSignatures,
@@ -17,7 +17,6 @@ import Data.Bifunctor (bimap)
 import Data.Kind (Type)
 import Data.List ((\\))
 import Data.Map qualified as Map
-import Data.Monoid (Last (Last))
 import Data.Row (Row)
 import Data.Text (Text)
 import Data.Void (Void)
@@ -40,7 +39,6 @@ import MajorityMultiSign.Schema (
   MajorityMultiSignDatum (MajorityMultiSignDatum),
   MajorityMultiSignIdentifier,
   MajorityMultiSignRedeemer (UpdateKeysAct, UseSignaturesAct),
-  MajorityMultiSignSchema,
   MajorityMultiSignValidatorParams (MajorityMultiSignValidatorParams),
   SetSignaturesParams (SetSignaturesParams, mmsIdentifier, newKeys, pubKeys),
   getMinSigners,
@@ -59,23 +57,18 @@ import Plutus.Contract (
  )
 import Plutus.Contract.Types (mapError)
 import Plutus.Contracts.Currency (CurrencyError (CurContractError), currencySymbol, mintContract)
-import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Plutus.V1.Ledger.Api (
   Datum (Datum, getDatum),
   Redeemer (Redeemer),
   ToData,
   fromBuiltinData,
  )
-import Plutus.V1.Ledger.Value (Value, assetClass, assetClassValue, assetClassValueOf)
+import Plutus.V1.Ledger.Value (assetClass, assetClassValue, assetClassValueOf)
 import PlutusTx (toBuiltinData)
 import PlutusTx.List.Natural qualified as Natural
 import PlutusTx.Natural (Natural)
 import PlutusTx.Numeric.Extra ((^-))
 import PlutusTx.Prelude hiding (foldMap, (<>))
-
--- | Add min lovelace to a value
-addMinLovelace :: Value -> Value
-addMinLovelace = (lovelaceValueOf 2_000_000 <>)
 
 -- | Token name for the MajorityMultiSignDatum
 multiSignTokenName :: TokenName
@@ -86,13 +79,15 @@ unwrapCurErr :: CurrencyError -> ContractError
 unwrapCurErr (CurContractError c) = c
 
 {- | Mints the oneshot for a validator, sends it to the precalculated validator address with the correct datum.
-  Writes the asset to observable state
+  Returns the asset, and optional writes it to observable state
 -}
 initialize ::
+  forall (w :: Type) (s :: Row Type).
   PaymentPubKeyHash ->
+  Maybe (AssetClass -> w) ->
   MajorityMultiSignDatum ->
-  Contract (Last AssetClass) MajorityMultiSignSchema ContractError ()
-initialize pkh dat = do
+  Contract w s ContractError AssetClass
+initialize pkh toObsState dat = do
   oneshotCS <- mapError unwrapCurErr $ currencySymbol <$> mintContract pkh [(multiSignTokenName, 1)]
   let oneshotAsset :: AssetClass
       oneshotAsset = assetClass oneshotCS multiSignTokenName
@@ -103,10 +98,14 @@ initialize pkh dat = do
         Constraints.mustPayToOtherScript
           (validatorHash $ validator params)
           (Scripts.Datum $ toBuiltinData dat)
-          (addMinLovelace $ assetClassValue oneshotAsset 1)
-  tell $ Last $ Just oneshotAsset
+          (assetClassValue oneshotAsset 1)
+  case toObsState of
+    Just convert -> tell $ convert $ oneshotAsset
+    Nothing -> pure ()
   ledgerTx <- submitTxConstraintsWith @Void lookups tx
   void $ awaitTxConfirmed $ Ledger.getCardanoTxId ledgerTx
+
+  pure oneshotAsset
 
 {- | Gets all possible [combinations](https://byjus.com/maths/permutation-and-combination/)
  of keys of exactly the given length.
@@ -190,7 +189,7 @@ prepareTxForSigning mms lookups tx = do
         bimap PlutusTx.toBuiltinData PlutusTx.toBuiltinData tx
           <> makeSigningConstraint @Any missingKeyOptions
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData UseSignaturesAct)
-          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (addMinLovelace $ assetClassValue mms.asset 1)
+          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mms) datum (assetClassValue mms.asset 1)
 
   mkTxConstraints @Any lookups' tx'
 
@@ -204,9 +203,9 @@ sufficientPubKeys pubKeys req opts = subset req pkhs && any (`subset` pkhs) opts
 
 -- | Updates all keys in the multisign given authority
 setSignatures ::
-  forall (w :: Type).
+  forall (w :: Type) (s :: Row Type).
   SetSignaturesParams ->
-  Contract w MajorityMultiSignSchema ContractError ()
+  Contract w s ContractError ()
 setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
   (txOutData, _, signerList) <- findUTxO mmsIdentifier
 
@@ -224,7 +223,7 @@ setSignatures SetSignaturesParams {mmsIdentifier, newKeys, pubKeys} = do
         makeSigningConstraint @Any missingKeyOptions
           <> foldMap Constraints.mustBeSignedBy newKeysDiff
           <> Constraints.mustSpendScriptOutput (fst txOutData) (Redeemer $ PlutusTx.toBuiltinData $ UpdateKeysAct newKeys)
-          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (addMinLovelace $ assetClassValue mmsIdentifier.asset 1)
+          <> Constraints.mustPayToOtherScript (validatorHashFromIdentifier mmsIdentifier) datum (assetClassValue mmsIdentifier.asset 1)
 
   unless (sufficientPubKeys pubKeys newKeysDiff keyOptions) $
     throwError $ OtherContractError "Insufficient pub keys given"

@@ -51,6 +51,13 @@ common lang
 
   default-language:   Haskell2010
 
+flag defer-plugin-errors
+  description:
+    Defer errors from the plugin, useful for things like Haddock that can't handle it.
+
+  default:     False
+  manual:      True
+
 library
   import:          lang
   exposed-modules:
@@ -60,15 +67,15 @@ library
     MajorityMultiSign.Schema
 
   build-depends:
-    , aeson              ^>=1.5.6.0
+    , aeson                      ^>=1.5.6.0
     , cardano-prelude
     , containers
     , extra
-    , freer-simple       ^>=1.2.1.1
-    , lens               ^>=4.19.2
-    , openapi3           <3.2
+    , freer-simple               ^>=1.2.1.1
+    , lens                       ^>=4.19.2
+    , openapi3                   <3.2
     , playground-common
-    , plutus-collection  >=1.0 && <2.2
+    , plutus-collection          >=1.0     && <2.2
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
@@ -79,48 +86,53 @@ library
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
-    , prettyprinter      ^>=1.7.0
-    , recursion-schemes  >=5 && <6
-    , row-types          ^>=1.0.1.0
+    , prettyprinter              ^>=1.7.0
+    , recursion-schemes          >=5       && <6
+    , row-types                  ^>=1.0.1.0
     , text
 
   hs-source-dirs:  src
+
+  if flag(defer-plugin-errors)
+    ghc-options: -fplugin-opt PlutusTx.Plugin:defer-errors
 
 test-suite majority-multisign-test
   import:         lang
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
-  other-modules:  Spec.Direct
-                  Spec.Golden
-                  Spec.Instances
-                  Spec.Integration
-                  Spec.IntegrationWrappers
-                  Spec.Roundtrip
+  other-modules:
+    Spec.Direct
+    Spec.Golden
+    Spec.Instances
+    Spec.Integration
+    Spec.IntegrationWrappers
+    Spec.Roundtrip
+
   build-depends:
     , bytestring
     , containers
     , data-default
-    , generic-arbitrary   ==0.2.*
+    , generic-arbitrary            ^>=0.2
     , lens
     , majority-multisign
     , plutus-collection
-    , plutus-context-builder ^>= 2.0
+    , plutus-context-builder       ^>=2.0
     , plutus-contract
-    , plutus-golden       >=1.0 && <3.1
-    , plutus-laws         >=1.0 && <3.1
+    , plutus-golden                >=1.0      && <3.1
+    , plutus-laws                  >=1.0      && <3.1
     , plutus-ledger
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-numeric
     , plutus-tx
     , plutus-tx-plugin
-    , QuickCheck          ^>=2.14.2
-    , quickcheck-instances ^>=0.3.25
+    , QuickCheck                   ^>=2.14.2
+    , quickcheck-instances         ^>=0.3.25
     , quickcheck-plutus-instances
-    , semigroupoids       ^>=5.3
-    , tasty               ^>=1.4.1
-    , tasty-plutus        ^>=9.1
-    , tasty-quickcheck    ^>=0.10.1.2
+    , semigroupoids                ^>=5.3
+    , tasty                        ^>=1.4.1
+    , tasty-plutus                 ^>=9.1
+    , tasty-quickcheck             ^>=0.10.1.2
     , text
 
   hs-source-dirs: test

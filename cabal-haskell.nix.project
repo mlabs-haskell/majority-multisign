@@ -1,6 +1,6 @@
 source-repository-package
   type: git
-  location: https://github.com/input-output-hk/plutus-apps.git
+  location: https://github.com/mlabs-haskell/plutus-apps.git
   subdir:
     doc
     freer-extras
@@ -16,13 +16,13 @@ source-repository-package
     plutus-use-cases
     quickcheck-dynamic
     web-ghc
-  tag: 7f543e21d4945a2024e46c572303b9c1684a5832
+  tag: 82c0725c4d05398ae76d71927cc60aa23db1a11d
 
 -- New testing functionality
 source-repository-package
   type: git
-  location: https://github.com/Liqwid-Labs/plutus-extra.git
-  tag: b456bb86ee809eccf6b79ea99d95b318d9a70c95
+  location: https://github.com/gege251/plutus-extra.git
+  tag: 54418f7539dacd299b5219ded18a78ebef357112
   subdir:
     plutus-collection
     plutus-context-builder
@@ -117,7 +117,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus
-  tag: cc72a56eafb02333c96f662581b57504f8f8992f
+  tag: 1a3c3a761cf048371c52a34b004f8b3fcf0dab43
   subdir:
     plutus-core
     plutus-ledger-api
